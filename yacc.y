@@ -37,7 +37,7 @@
 	void init();
 	int busca_main();
 	int existe_en_alcance(char*);
-	int existe_globalmnete(char*);
+	int existe_globalmente(char*);
 	int max(int, int);
 	void new_Temp(char*);
 	expresion operacion(expresion, expresion, char*);
@@ -48,10 +48,8 @@
 	condition relacional(expresion, expresion, char*);
 	condition and(condition, condition);
 	condition or(condition, condition);
-
 	expresion identificador(char *s);
 	void newLabel(char *s);
-
 	void yyerror(char*);
 
 %}
@@ -101,6 +99,8 @@
 %token THEN
 %token WHAT
 %token REGISTRO
+%token READ
+%token WRITE
 
 /* Presedencia y asociatividad de operadores */
 %left ASIG
@@ -111,21 +111,21 @@
 %left<sval> MAS MENOS
 %left<sval> PROD DIV MOD
 %left NOT
-%nonassoc PRA CTA PRC CTC
+%nonassoc PRA CTA PRC CTC FIN INICIO
 %left IF
 %left ELSE
-
+%left REGISTRO
 
 /* Tipos */
-%type<tval> tipo declaraciones C I
-%type<sval> R
+%type<tval> base tipo tipo_arreglo arg
+%type<sval> relacional expresion variable
 %type<args_list> argumentos lista_arg
 %type<cond> expresion_booleana
 
 %%
 
 /* programa -> declaraciones funciones */
-programa: 	{ 
+programa: { 
 		printf("\nInicializando las pilas....\n");
 		printf("Tabla de simbolos global creada...");
 		init(); 
@@ -141,19 +141,18 @@ programa: 	{
 	;
 
 
-/* declaraciones -> tipo lista_var declaraciones | registro inicio declaraciones fin epsilon*/
-declaraciones: 	tipo lista_var 
-	declaraciones { global_tipo = $1.type; global_dim = $1.dim;}
+/* tipo-> base tipo_arreglo */
+tipo: base tipo_arreglo { global_tipo = $1.type; global_dim = $1.dim; }
+	;
+
+/* declaraciones -> tipo lista_var declaraciones | registro inicio declaraciones fin epsilon */
+declaraciones: tipo { global_tipo = $1.type; global_dim = $1.dim; } lista_var declaraciones 
 	| REGISTRO INICIO declaraciones FIN declaraciones
 	| {}
 	;
 
-/* tipo-> base tipo_arreglo 
-tipo: base tipo_arreglo
-	;
-
 /* base -> ent | real | dreal | car | sin */
-base: 	INT { $$.type = 1; $$.dim = 2; }
+base: INT { $$.type = 1; $$.dim = 2; }
 	| FLOAT { $$.type = 2; $$.dim = 4; }
 	| DOUBLE { $$.type = 3; $$.dim = 8; }
 	| CHAR { $$.type = 4; $$.dim = 1; }
@@ -196,7 +195,7 @@ lista_var: 	lista_var COMA ID tipo_arreglo {
 	;
 
 /* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
+tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 		ttype t;
 		if($2.type == 1){
 			t.type = "array";
@@ -215,7 +214,7 @@ tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
 	;
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones:	FUNCION tipo ID {
+funciones:	FUNCION base ID {
 		num_args = 0;
 		list_args = malloc(sizeof(int) * 100);
 		create_symbols_table();
@@ -259,34 +258,36 @@ argumentos:	lista_arg { $$ = $1; }
 	| { $$.total = 0; }
 	;
 
-/* arg -> tipo id I */
+/* arg -> tipo id */
 arg: tipo {
-		global_tipo = $1.type;
-		global_dim = $1.dim;
-	}
-	ID {
-		if(existe_en_alcance($2) == -1){
+		if(global_tipo != 0){
+			$1.type = global_tipo;
+			$1.dim = global_dim;
+		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
+	} ID {
+		if(existe_en_alcance($3) == -1){
 			symbol sym;
-			sym.id = $2;
+			sym.id = $3;
 			sym.dir = dir;
-			sym.type = $2.type;
+			sym.type = $1.type;
 			sym.var = "par";
 			sym.num_args = 0;
 			insert_symbol(sym);
-			dir += $2.dim;
-			*(list_args + num_args) = $2.type;
+			dir += $1.dim;
+			*(list_args + num_args) = $1.type;
 			num_args++;
-			$$.total = num_args + 1;
-			$$.args = list_args;
-		} else { yyerror("Parametro duplicado en funcion"); exit(0); }
+		}else{
+			yyerror("Parametro duplicado en funcion"); exit(0);
+		}
 	}
 	;
 
 /* lista_arg -> lista_arg | arg */
-lista_arg:	lista_arg arg 
-		| arg
+lista_arg:	lista_arg arg | arg {
+		$$.total = num_args + 1;
+		$$.args = list_args;
+	}
 	;
-
 
 /* sentencias->sentencia sentencia | sentencias */
 sentencias: sentencia sentencia
@@ -297,7 +298,7 @@ sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 	| IF expresion_booleana sentencias ELSE sentencias FIN
 	| WHILE expresion_booleana sentencias FIN
 	| DO sentencias WHILE WHAT expresion_booleana FIN
-	| U ASIG expresion 
+	| variable ASIG expresion 
 	| WRITE expresion
 	| READ expresion
 	| RETURN expresion 
@@ -308,24 +309,25 @@ sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 
 /* casos -> case : numero S J | epsilon */
 casos:	CASE ENTERO DPTS sentencias 
-	| CASE ENTERO DPTS sentencias
+	| {}
 	;
 
 /* predeterminado -> predet : setencias | epsilon */
-predeterminado:	DEFAULT DPTS setencias
+predeterminado:	DEFAULT DPTS sentencias
 	;
 
 /* variable -> id parte_arreglo | id . id */
-variable:	ID parte_arreglo{
+variable:	ID {
 		if(existe_globalmente($1) == -1){
 			yyerror("Variable no declarada");
 			exit(0);
-		}	
-	}
+		}
+	} 
+	parte_arreglo 
 	| ID PT ID {
 		if(existe_globalmente($1) != -1){
 			int t = get_type($1);
-			if(t == 1 || t == 2 || t == 3 || t ==4){
+			if(t == 1 || t == 2 || t == 3 || t == 4){
 				yyerror("La variable no es una estructura");
 				exit(0);
 			}
@@ -337,7 +339,7 @@ variable:	ID parte_arreglo{
 	;
 
 /* parte_arreglo -> [ expresion ] parte_arreglo | epsilon */
-parte_arreglo:	CTA expresion CTC parte_arreglo
+parte_arreglo:	CTA expresion CTC parte_arreglo | {}
 	;
 
 /* expresion -> expresion + expresion |
@@ -348,9 +350,7 @@ parte_arreglo:	CTA expresion CTC parte_arreglo
 	( expresion ) |
 	variable |
 	num | cadena | caracter |
-	id (parametros)
-
-	 U | cadena | numero | caracter | id ( H ) */
+	id (parametros) */
 expresion:	expresion MAS expresion
 	| expresion MENOS expresion
 	| expresion PROD expresion
@@ -362,6 +362,8 @@ expresion:	expresion MAS expresion
 	| CADENA 
 	| CARACTER 
 	| ID PRA parametros PRC 
+	;
+parametros: lista_param
 	;
 
 /* lista_param -> lista_param , expresion | expresion */
@@ -383,14 +385,14 @@ expresion_booleana: expresion_booleana OR expresion_booleana { $$ = or($1, $3); 
 	| FALSE {}
 	;
 
-/* relacional -> < | > | >= | <= | == | <> */
+/* relacional -> < | > | >= | <= | == | <> | expresion */
 relacional:	SMT { $$ = $1; }
 	| GRT { $$ = $1; }
 	| GREQ { $$ = $1; }
 	| SMEQ { $$ = $1; }
 	| EQEQ { $$ = $1; }
 	| DIF { $$ = $1; }
-	| relacional
+	| expresion
 	;
 
 %%

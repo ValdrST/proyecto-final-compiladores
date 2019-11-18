@@ -1,0 +1,28 @@
+
+// comentario prueba
+/*
+func int main(sin){
+	if(true && true){
+		z = '>';
+	}
+	return;
+}
+*/
+
+func ent main(ent q car p) inicio
+	dreal x
+	dreal y
+	//j = 2 + 2
+	//a[2] = 2
+	//j.d = 3
+	si(no((true yy false) oo (true oo false))){
+		return
+	}
+	return x
+fin
+
+func void prueba(){
+	return;
+}
+
+/*func ent main2(){}*/

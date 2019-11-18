@@ -49,7 +49,7 @@ int search_global(char*);
 void create_symbols_table();
 void delete_symbols_table();
 void insert_symbol(symbol); 
-void insert_global_simbol(symbol);
+void insert_global_symbol(symbol);
 int get_type(char*);
 int get_dir(char*);
 char* get_var(char*);

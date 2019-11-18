@@ -113,7 +113,7 @@ falso				{ yylval.line = yylineno; return FALSE; }
 
 \.					{ yylval.line = yylineno; return PT; }
 
-"no"					{ yylval.line = yylineno; return NOT; }	
+"no"				{ yylval.line = yylineno; return NOT; }	
 
 "oo"				{ yylval.line = yylineno; return OR; }	
 

@@ -1,7 +1,7 @@
 all: 
 	bison -vd yacc.y
-	echo "#include \"attribs.h\"" > encabezado.txt
-	cat yacc.tab.h >> encabezado.txt
+	echo "#include \"attribs.h\"" > temp.h
+	cat yacc.tab.h >> temp.h
 	cat encabezado.txt > yacc.tab.h
 	flex lex.l
 	gcc -g -std=c99 -c -o intermediate_code.o intermediate_code.c
