@@ -29,7 +29,7 @@ typedef struct _label{
 	int i;
 } label;
 
-/* Tabla que usara el compilador para guardar las cuadruplas. */
+/* Codigo siendo atributo global. */
 code CODE;
 
 // Funciones:

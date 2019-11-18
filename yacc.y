@@ -142,7 +142,7 @@ programa: {
 
 
 /* tipo-> base tipo_arreglo */
-tipo: base tipo_arreglo { global_tipo = $1.type; global_dim = $1.dim; }
+tipo: base { global_tipo = $1.type; global_dim = $1.dim; } tipo_arreglo  | {}
 	;
 
 /* declaraciones -> tipo lista_var declaraciones | registro inicio declaraciones fin epsilon */
@@ -214,7 +214,7 @@ tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 	;
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones:	FUNCION base ID {
+funciones:	FUNCION tipo ID {
 		num_args = 0;
 		list_args = malloc(sizeof(int) * 100);
 		create_symbols_table();

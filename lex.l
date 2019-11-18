@@ -103,11 +103,9 @@ falso				{ yylval.line = yylineno; return FALSE; }
 
 "}"					{ yylval.line = yylineno; return LLC; }	
 
-"="					{ yylval.line = yylineno; return ASIG; }	
+":="				{ yylval.line = yylineno; return ASIG; }	
 
 ":"					{ yylval.line = yylineno; return DPTS; }	
-
-";"					{ yylval.line = yylineno; return PYC; }	
 
 ","					{ yylval.line = yylineno; return COMA; }
 

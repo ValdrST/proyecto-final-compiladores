@@ -1,28 +1,10 @@
-
-// comentario prueba
-/*
-func int main(sin){
-	if(true && true){
-		z = '>';
-	}
-	return;
-}
-*/
-
-func ent main(ent q car p) inicio
-	dreal x
-	dreal y
-	//j = 2 + 2
-	//a[2] = 2
-	//j.d = 3
-	si(no((true yy false) oo (true oo false))){
-		return
-	}
-	return x
+func ent main() 
+inicio
+	ent z
+	devolver 1
 fin
 
-func void prueba(){
-	return;
-}
-
-/*func ent main2(){}*/
+func ent sum(ent x ent y)
+inicio
+	devolver x + y
+fin
