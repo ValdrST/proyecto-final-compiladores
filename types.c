@@ -16,23 +16,23 @@ void create_types_table(){
 	types_table new_table;
 	new_table.types = malloc(sizeof(ttype) * 100);
 
-	(new_table.types + 0)->type = "void";
+	(new_table.types + 0)->type = "sin";
 	(new_table.types + 0)->dim = 0;
 	(new_table.types + 0)->base = -1;
 
-	(new_table.types + 1)->type = "int";
+	(new_table.types + 1)->type = "ent";
 	(new_table.types + 1)->dim = 2;
 	(new_table.types + 1)->base = -1;
 
-	(new_table.types + 2)->type = "float";
+	(new_table.types + 2)->type = "real";
 	(new_table.types + 2)->dim = 4;
 	(new_table.types + 2)->base = -1;
 
-	(new_table.types + 3)->type = "double";
+	(new_table.types + 3)->type = "dreal";
 	(new_table.types + 3)->dim = 8;
 	(new_table.types + 3)->base = -1;
 
-	(new_table.types + 4)->type = "char";
+	(new_table.types + 4)->type = "car";
 	(new_table.types + 4)->dim = 1;
 	(new_table.types + 4)->base = -1;
 

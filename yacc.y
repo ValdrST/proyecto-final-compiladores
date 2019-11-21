@@ -15,6 +15,7 @@
 	extern FILE *yyout;
 	extern int yylineno;
 
+	expresion exp_temp;
 	// Variable que llevara el manejo de direcciones.
 	int dir;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
@@ -60,6 +61,8 @@
 	type tval;
 	expresion eval;
 	num num;
+	char* cadena;
+	char car;
 	args_list args_list;
 	condition cond;
 	sentence sent;
@@ -74,7 +77,7 @@
 %token INT
 %token FLOAT
 %token DOUBLE
-%token CHAR
+%token<car> CHAR
 %token VOID
 %token LLA
 %token LLC
@@ -92,8 +95,8 @@
 %token BREAK
 %token CASE
 %token DEFAULT
-%token CADENA
-%token CARACTER
+%token<cadena> CADENA
+%token<car> CARACTER
 %token TRUE
 %token FALSE
 %token THEN
@@ -118,9 +121,11 @@
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo arg
-%type<sval> relacional expresion variable
+%type<sval> variable
+%type<eval> expresion
+%type<sent> sentencia sentencias
 %type<args_list> argumentos lista_arg
-%type<cond> expresion_booleana
+%type<cond> expresion_booleana relacional
 
 %%
 
@@ -197,9 +202,10 @@ lista_var: 	lista_var COMA ID tipo_arreglo {
 /* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
 tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 		ttype t;
-		if($2.type == 1){
+		if($2.type == 1 && $2.ival > 0){
 			t.type = "array";
 			t.dim = $2.ival;
+
 			t.base = $4.type;
 			$$.type = insert_type(t);
 			$$.dim = $4.dim * $2.ival;
@@ -209,7 +215,7 @@ tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 		if(global_tipo != 0){
 			$$.type = global_tipo;
 			$$.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
+		} else { yyerror("No se pueden declarar variables de tipo sin"); exit(0); }
 	}
 	;
 
@@ -225,7 +231,7 @@ funciones:	FUNCION tipo ID {
 	}
 	PRA argumentos PRC INICIO declaraciones sentencias FIN {
 		if(existe_globalmente($3) == -1){
-			//if(strcpm($2.type, $10.return) == 0){
+			if($10.retorno == $2.type){
 				ttype t;
 				char* tipo = malloc(sizeof(char) * 10);
 				sprintf(tipo, "%d", $2.type);
@@ -236,17 +242,22 @@ funciones:	FUNCION tipo ID {
 				symbol sym;
 				sym.id = $3;
 				sym.dir = -1;
-				sym.type = $2.type; // Falta agregar el tipo t.
+				sym.type = $2.type;
 				sym.var = "fun";
 				sym.num_args = $6.total;
 				sym.list_types = $6.args;
 				insert_global_symbol(sym);
-			//} else { yyerror("El valor de retorno no coincide"); exit(0); }
-		} else { yyerror("Funcion declarada anteriormente"); exit(0); }
-		print_symbols_table_2(SYM_STACK.total, $3);
-		scope--;
-		dir = dir_aux;
-		delete_types_table();
+				print_symbols_table_2(SYM_STACK.total, $3);
+				scope--;
+				dir = dir_aux;
+				delete_types_table();
+			} else { 
+				yyerror("El valor de retorno no coincide"); exit(0);
+		}
+		
+	} else { 
+			yyerror("Funcion declarada anteriormente"); exit(0); 
+	}
 	}
 	funciones
 	| {}
@@ -263,7 +274,7 @@ arg: tipo {
 		if(global_tipo != 0){
 			$1.type = global_tipo;
 			$1.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
+		} else { yyerror("No se pueden declarar variables de tipo sin"); exit(0); }
 	} ID {
 		if(existe_en_alcance($3) == -1){
 			symbol sym;
@@ -289,9 +300,9 @@ lista_arg:	lista_arg arg | arg {
 	}
 	;
 
-/* sentencias->sentencia sentencia | sentencias */
-sentencias: sentencia sentencia
-			| sentencia
+/* sentencias->sentencias sentencia | sentencias */
+sentencias: sentencias sentencia {$$ = $1;}
+			| sentencia {$$ = $1;}
 			;
 /* sentencia -> si ( expresion_booleana ) entonces sentencias | if ( expresion_booleana ) S else S | while ( B ) S | do S while ( B ) ; | for ( S ; B ; S ) S | U = E ; | return E ; | return ; | { S } | switch ( E ) { J K } | break ; | print E ; */
 sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
@@ -301,8 +312,10 @@ sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 	| variable ASIG expresion 
 	| WRITE expresion
 	| READ expresion
-	| RETURN expresion 
-	| RETURN 
+	| RETURN expresion {
+		label l;
+		$$.retorno = $2.type;}
+	| RETURN {$$.retorno = 0;}
 	| SWITCH PRA expresion PRC casos predeterminado FIN
 	| BREAK
 	;
@@ -351,16 +364,30 @@ parte_arreglo:	CTA expresion CTC parte_arreglo | {}
 	variable |
 	num | cadena | caracter |
 	id (parametros) */
-expresion:	expresion MAS expresion
-	| expresion MENOS expresion
-	| expresion PROD expresion
-	| expresion DIV expresion
-	| expresion MOD expresion
+expresion:	expresion MAS expresion {$$ = operacion($1,$3,"+");}
+	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
+	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
+	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
+	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
 	| PRA expresion PRC
-	| variable
-	| ENTERO 
-	| CADENA 
-	| CARACTER 
+	| variable { if(existe_en_alcance($1) == -1){
+		printf("la variable %s no esta declarada\n",$1);
+	}else{
+
+	}}
+	| ENTERO {
+		$$ = numero_entero($1.ival);
+	}
+	| CADENA {
+		expresion new_exp;
+		sprintf(new_exp.dir, "%d", strlen($1) * 2);
+		new_exp.type = 5;
+		new_exp.first = 4;
+		$$ = new_exp;
+	}
+	| CARACTER {
+		$$ = caracter($1);
+	}
 	| ID PRA parametros PRC 
 	;
 parametros: lista_param
@@ -386,13 +413,13 @@ expresion_booleana: expresion_booleana OR expresion_booleana { $$ = or($1, $3); 
 	;
 
 /* relacional -> < | > | >= | <= | == | <> | expresion */
-relacional:	SMT { $$ = $1; }
-	| GRT { $$ = $1; }
-	| GREQ { $$ = $1; }
-	| SMEQ { $$ = $1; }
-	| EQEQ { $$ = $1; }
-	| DIF { $$ = $1; }
-	| expresion
+relacional: relacional SMT relacional { $$ = $1; }
+	| relacional GRT relacional { $$ = $1; }
+	| relacional GREQ relacional { $$ = $1; }
+	| relacional SMEQ relacional { $$ = $1; }
+	| relacional EQEQ relacional { $$ = $1; }
+	| relacional DIF relacional { $$ = $1; }
+	| expresion {exp_temp = $1;}
 	;
 
 %%
@@ -427,7 +454,7 @@ int existe_globalmente(char* id){
 
 /* Funcion encargada de revisar los tipos, si son correctos toma el de
    mayor rango, e.o.c manda un mensaje de error. 
-   void = 0, int = 1, float = 2, double = 3, char = 4, struct = 5*/
+   void = 0, int = 1, float = 2, double = 3, char = 4*/
 int max(int t1, int t2){
 	if(t1 == t2) return t1;
 	else if (t1 == 1 && t2 == 2) return t1;
@@ -502,6 +529,15 @@ expresion caracter(char c){
 	sprintf(new_exp.dir, "%c", c);
 	new_exp.type = 4;
 	new_exp.first = -1;
+	return new_exp;
+}
+
+/* Funcion encargada de tomar un caracter y guardarlo como expresion. */
+expresion string(char* str){
+	expresion new_exp;
+	sprintf(new_exp.dir, "%s", str);
+	new_exp.type = 5;
+	new_exp.first = 4;
 	return new_exp;
 }
 

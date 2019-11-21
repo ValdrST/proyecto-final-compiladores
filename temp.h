@@ -113,18 +113,20 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 57 "yacc.y"
+#line 58 "yacc.y"
 
 	int line;
 	char* sval;
 	type tval;
 	expresion eval;
 	num num;
+	char* cadena;
+	char car;
 	args_list args_list;
 	condition cond;
 	sentence sent;
 
-#line 127 "yacc.tab.h"
+#line 129 "yacc.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

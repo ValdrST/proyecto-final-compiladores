@@ -3,3 +3,5 @@
 p
 *.txt
 *.output
+*.tab.c
+*.tab.h
