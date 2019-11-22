@@ -5,7 +5,7 @@
 
 /* Estructura para el manejo de expresiones. */
 typedef struct _expresion{
-    char* dir;
+    char dir[10];
     int type;
     int first;
 } expresion;
@@ -14,7 +14,7 @@ typedef struct _expresion{
 typedef struct _condition{
     label ltrue;
     label lfalse;  
-    int first;
+    int first;  
 } condition;
 
 /* Estructura para el manejo de valores numericos. */
@@ -27,8 +27,8 @@ typedef struct _num{
 
 /* Estructura para el manejo de sentencias. */
 typedef struct _sentence{
-    label lnext; 
-    int retorno;
+    label lnext;
+    int first;    
 } sentence;
 
 /* Estructura para el manejo de tipos. */

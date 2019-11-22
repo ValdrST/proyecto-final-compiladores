@@ -34,9 +34,8 @@ int search_scope(char *id){
     printf("\nBuscando %s en el mismo alcance....", id);
     symbols_table* top = SYM_STACK.tables + SYM_STACK.total;
     for(int i = 0; i <= top->total; i++)
-        if(strcmp(id, (top->symbols + i)->id) == 0){
+        if(strcmp(id, (top->symbols + i)->id) == 0)
             return i;
-        }
     return -1;
 }
 
@@ -115,6 +114,20 @@ int get_dir(char *id){
         j--;
     }
     return -1;
+}
+
+
+int* get_list_type(char* id){
+        int j = SYM_STACK.total;
+    symbols_table* tabla_actual;
+    while(j >= 0){
+        tabla_actual = SYM_STACK.tables + j;
+        for(int i = 0; i <= tabla_actual->total; i++)
+            if(strcmp(id, (tabla_actual->symbols + i)->id) == 0)
+                return (tabla_actual->symbols + i)->list_types;
+        j--;
+    }
+    return NULL;
 }
 
 /* Funcion que regresa el tipo de identificador pasado como parametro. 

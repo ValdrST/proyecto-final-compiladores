@@ -44,6 +44,8 @@ symbols_stack SYM_STACK;
 
 void init_symbols();
 char* get_List_Types(int, int*);
+int get_num_args(char*);
+int* get_list_type(char*);
 int search_scope(char*);
 int search_global(char*);
 void create_symbols_table();

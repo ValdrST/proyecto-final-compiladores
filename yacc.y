@@ -15,9 +15,6 @@
 	extern FILE *yyout;
 	extern int yylineno;
 
-	int is_fun = 0;
-	expresion exp_temp;
-	expresion* temp_var;
 	// Variable que llevara el manejo de direcciones.
 	int dir;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
@@ -41,18 +38,24 @@
 	int busca_main();
 	int existe_en_alcance(char*);
 	int existe_globalmente(char*);
+
 	int max(int, int);
 	void new_Temp(char*);
 	expresion operacion(expresion, expresion, char*);
 	expresion numero_entero(int);
 	expresion numero_flotante(float);
 	expresion numero_doble(double);
+	expresion funcion_e(char* f);
 	expresion caracter(char);
+	expresion variable_v(char* c);
+		expresion cadena_s(char* c);
 	condition relacional(expresion, expresion, char*);
 	condition and(condition, condition);
 	condition or(condition, condition);
+
 	expresion identificador(char *s);
 	void newLabel(char *s);
+
 	void yyerror(char*);
 
 %}
@@ -63,8 +66,6 @@
 	type tval;
 	expresion eval;
 	num num;
-	code* code_s;
-	char* cadena;
 	char car;
 	args_list args_list;
 	condition cond;
@@ -80,12 +81,12 @@
 %token INT
 %token FLOAT
 %token DOUBLE
-%token<car> CHAR
+%token CHAR
 %token VOID
+%token STRUCT
 %token LLA
 %token LLC
 %token COMA
-%token PYC
 %token DPTS
 %token PT
 %token FUNCION
@@ -96,9 +97,10 @@
 %token RETURN
 %token SWITCH
 %token BREAK
+%token PRINT
 %token CASE
 %token DEFAULT
-%token<cadena> CADENA
+%token<sval> CADENA
 %token<car> CARACTER
 %token TRUE
 %token FALSE
@@ -117,35 +119,29 @@
 %left<sval> MAS MENOS
 %left<sval> PROD DIV MOD
 %left NOT
-%nonassoc PRA CTA PRC CTC FIN INICIO
+%nonassoc PRA CTA PRC CTC INICIO FIN
 %left IF
 %left ELSE
 
 /* Tipos */
-%type<tval> base tipo tipo_arreglo arg
-%type<code_s> programa funciones declaraciones
+%type<tval> tipo tipo_arreglo I
 %type<sval> variable
+%type<args_list> argumentos lista_arg lista_param
 %type<eval> expresion
-%type<sent> sentencia sentencias
-%type<args_list> argumentos lista_arg
 %type<cond> expresion_booleana relacional
-
+%type<sent> sentencias sentencia
 %%
 
 /* programa -> declaraciones funciones */
 programa: { 
 		printf("\nInicializando las pilas....\n");
 		printf("Tabla de simbolos global creada...");
-		init();
+		init(); 
 	} declaraciones funciones {
-		$$ = crea_code();
 		if(busca_main() == -1){
 			yyerror("Falta definir funcion principal");
 			exit(0);
 		}
-		
-		concat_code($$,$2);
-		concat_code($$,$3);
 		print_symbols_table(); 
 		print_types_table(); 
 		print_code(); 
@@ -153,45 +149,38 @@ programa: {
 	;
 
 
-/* tipo-> base tipo_arreglo */
-tipo: base { global_tipo = $1.type; global_dim = $1.dim; } tipo_arreglo  | {}
+/* declaraciones -> tipo lista_var declaraciones | epsilon*/
+declaraciones: 	tipo { global_tipo = $1.type; global_dim = $1.dim; } lista_var declaraciones
+	| {}
 	;
 
-/* declaraciones -> tipo lista_var declaraciones | registro inicio declaraciones fin epsilon */
-declaraciones: tipo { global_tipo = $1.type; global_dim = $1.dim;} lista_var declaraciones 
+/* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
+tipo: INT { $$.type = 1; $$.dim = 2; }
+	| FLOAT { $$.type = 2; $$.dim = 4; }
+	| DOUBLE { $$.type = 3; $$.dim = 8; }
+	| CHAR { $$.type = 4; $$.dim = 1; }
+	| VOID { $$.type = 0; $$.dim = 0; }
 	| REGISTRO {
-		
 		create_symbols_table();
 		create_types_table();
 		dir_aux = dir;
 		dir = 0;
 		scope++;
-	} INICIO declaraciones FIN {
+	}  INICIO declaraciones FIN { 
 		ttype t;
 		t.type = "registro";
 		t.dim = 0;
 		t.base = -1;
-		global_tipo = insert_type_global(t);
-		global_dim = dir;
-		print_symbols_table_2(SYM_STACK.total, "registro");
+		$$.type = insert_type_global(t);
+		$$.dim = dir;
+		print_symbols_table_2(SYM_STACK.total, "struct");
 		scope--;
 		dir = dir_aux;
 		delete_types_table();
-	} declaraciones {
-		$$ = crea_code();
 	}
-	| {}
 	;
 
-/* base -> ent | real | dreal | car | sin */
-base: INT { $$.type = 1; $$.dim = 2; }
-	| FLOAT { $$.type = 2; $$.dim = 4; }
-	| DOUBLE { $$.type = 3; $$.dim = 8; }
-	| CHAR { $$.type = 4; $$.dim = 1; }
-	| VOID { $$.type = 0; $$.dim = 0; }
-	;
-
-/* lista_var -> lista_var, id tipo_arreglo | id C */
+/* lista_var -> lista_var, id tipo_arreglo | id tipo_arreglo */
 lista_var: 	lista_var COMA ID tipo_arreglo { 
 		if(existe_en_alcance($3) == -1){
 			symbol sym;
@@ -226,29 +215,28 @@ lista_var: 	lista_var COMA ID tipo_arreglo {
 	}
 	;
 
+/* C -> [numero] C | epsilon */
 /* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
-tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
+tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
 		ttype t;
-		if($2.type == 1 && $2.ival > 0){
+		if($2.type == 1){
 			t.type = "array";
 			t.dim = $2.ival;
-
 			t.base = $4.type;
 			$$.type = insert_type(t);
 			$$.dim = $4.dim * $2.ival;
 		} else { yyerror("La dimension del arreglo debe ser entera"); exit(0); }
 	}
-	| {
-		if(global_tipo != 0 && is_fun != 1){
+	| { 
+		if(global_tipo != 0){
 			$$.type = global_tipo;
 			$$.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo sin"); exit(0); }
+		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
 	}
 	;
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones:	FUNCION tipo ID {
-		is_fun = 0;
+funciones: FUNCION tipo ID {
 		num_args = 0;
 		list_args = malloc(sizeof(int) * 100);
 		create_symbols_table();
@@ -258,9 +246,8 @@ funciones:	FUNCION tipo ID {
 		dir = 0;
 	}
 	PRA argumentos PRC INICIO declaraciones sentencias FIN {
-		is_fun = 0;
 		if(existe_globalmente($3) == -1){
-			//if($9.retorno != $2.type){
+			//if(strcpm($2.type, $10.return) == 0){
 				ttype t;
 				char* tipo = malloc(sizeof(char) * 10);
 				sprintf(tipo, "%d", $2.type);
@@ -271,63 +258,82 @@ funciones:	FUNCION tipo ID {
 				symbol sym;
 				sym.id = $3;
 				sym.dir = -1;
-				sym.type = $2.type;
+				sym.type = $2.type; // Falta agregar el tipo t.
 				sym.var = "fun";
 				sym.num_args = $6.total;
 				sym.list_types = $6.args;
 				insert_global_symbol(sym);
-				print_symbols_table_2(SYM_STACK.total, $3);
-				scope--;
-				dir = dir_aux;
-				delete_types_table();
-			/*} else { 
-				printf("%d %d",$10.lnext,$2.type);
-				yyerror("El valor de retorno no coincide"); 
-				exit(0);
-		}*/
-		
-	} else { 
-			yyerror("Funcion declarada anteriormente"); exit(0); 
-	}
+			//} else { yyerror("El valor de retorno no coincide"); exit(0); }
+		} else { yyerror("Funcion declarada anteriormente"); exit(0); }
+		print_symbols_table_2(SYM_STACK.total, $3);
+		scope--;
+		dir = dir_aux;
+		delete_types_table();
 	}
 	funciones
 	| {}
 	;
 
-
-/* argumentos -> lista_arg | epsilon */
+/* A -> G | epsilon */
 argumentos:	lista_arg { $$ = $1; }
 	| { $$.total = 0; }
 	;
 
-/* arg -> tipo id */
-arg: tipo {
-		if(global_tipo != 0){
-			$1.type = global_tipo;
-			$1.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo sin"); exit(0); }
-	} ID {
+/* G -> G , T id I | T id I */
+lista_arg:	lista_arg COMA tipo {
+		global_tipo = $3.type;
+		global_dim = $3.dim;
+	}
+	ID I {
+		if(existe_en_alcance($5) == -1){
+			symbol sym;
+			sym.id = $5;
+			sym.dir = dir;
+			sym.type = $6.type;
+			sym.var = "par";
+			sym.num_args = 0;
+			insert_symbol(sym);
+			dir += $6.dim;
+			*(list_args + num_args) = $6.type;
+			num_args++;
+		} else { yyerror("Parametro duplicado en funcion"); exit(0); }
+	}
+	| tipo {
+		global_tipo = $1.type;
+		global_dim = $1.dim;
+	}
+	ID I {
 		if(existe_en_alcance($3) == -1){
 			symbol sym;
 			sym.id = $3;
 			sym.dir = dir;
-			sym.type = $1.type;
+			sym.type = $4.type;
 			sym.var = "par";
 			sym.num_args = 0;
 			insert_symbol(sym);
-			dir += $1.dim;
-			*(list_args + num_args) = $1.type;
+			dir += $4.dim;
+			*(list_args + num_args) = $4.type;
 			num_args++;
-		}else{
-			yyerror("Parametro duplicado en funcion"); exit(0);
-		}
+			$$.total = num_args + 1;
+			$$.args = list_args;
+		} else { yyerror("Parametro duplicado en funcion"); exit(0); }
 	}
 	;
 
-/* lista_arg -> lista_arg | arg */
-lista_arg:	lista_arg arg | arg {
-		$$.total = num_args + 1;
-		$$.args = list_args;
+/* I -> [] I | epsilon */
+I:	CTA CTC I {
+		ttype t;
+		t.type = "array";
+		t.dim = $3.dim;
+		t.base = $3.type;
+		$$.type = insert_type(t);
+		$$.dim = $3.dim;
+	}
+	| {
+		if(global_tipo != 0){
+			$$.type = global_tipo;
+			$$.dim = global_dim;
+		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
 	}
 	;
 
@@ -335,7 +341,24 @@ lista_arg:	lista_arg arg | arg {
 sentencias: sentencias sentencia {$$ = $1;}
 			| sentencia {$$ = $1;}
 			;
-/* sentencia -> si ( expresion_booleana ) entonces sentencias | if ( expresion_booleana ) S else S | while ( B ) S | do S while ( B ) ; | for ( S ; B ; S ) S | U = E ; | return E ; | return ; | { S } | switch ( E ) { J K } | break ; | print E ; */
+
+/* sentencia→si expresion_booleana entonces
+	sentencia fin | 
+	si expresion_booleana
+	sentencias 
+	sino
+	sentencias
+	fin|
+	mientras expresion_booleana hacer
+	sentencias
+	fin|
+	hacer
+	sentencia
+	mientras que expresion_booleana |
+	id :=expresion | escribir expresion|leer variable|devolver|devolver expresion|
+	segun (expresion)
+	casos predeterminado
+	fin|terminar */
 sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 	| IF expresion_booleana sentencias ELSE sentencias FIN
 	| WHILE expresion_booleana sentencias FIN
@@ -343,41 +366,38 @@ sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 	| variable ASIG expresion 
 	| WRITE expresion
 	| READ expresion 
-	| RETURN expresion {
-		label l;
-		printf("retorno bueno\n");
-		$$.retorno = $2.type;}
-	| RETURN {
-		printf("retorno sin\n");
-		$$.retorno = 0;}
+	| RETURN expresion 
+	| RETURN
 	| SWITCH PRA expresion PRC casos predeterminado FIN
 	| BREAK
 	;
-
 /* casos -> case : numero S J | epsilon */
-casos:	CASE ENTERO DPTS sentencias 
-	| {}
+casos:	CASE ENTERO DPTS ENTERO sentencias
+	|	casos CASE ENTERO DPTS sentencias
 	;
 
 /* predeterminado -> predet : setencias | epsilon */
-predeterminado:	DEFAULT DPTS sentencias
+predeterminado:	DEFAULT DPTS sentencias |
 	;
 
-/* variable -> id parte_arreglo | id . id */
-variable:	ID {
+
+/* variable -> id | parte_arreglo | id . id */
+variable: ID {
 		if(existe_globalmente($1) == -1){
 			yyerror("Variable no declarada");
 			exit(0);
-		}
-	} 
-	parte_arreglo 
+			$$ = $1;
+		}	
+	}
+	| parte_arreglo
 	| ID PT ID {
 		if(existe_globalmente($1) != -1){
 			int t = get_type($1);
-			if(t == 1 || t == 2 || t == 3 || t == 4){
-				yyerror("La variable no es una estructura");
+			if(t == 1 || t == 2 || t == 3 || t ==4){
+				yyerror("La variable no es un registro");
 				exit(0);
 			}
+			$$ = $1;
 		} else {
 			yyerror("Variable no declarada");
 			exit(0);
@@ -385,81 +405,93 @@ variable:	ID {
 	}
 	;
 
-/* parte_arreglo -> [ expresion ] parte_arreglo | epsilon */
-parte_arreglo:	CTA expresion CTC parte_arreglo | {}
+/* parte_arreglo -> id [ expresion ] | parte_arreglo [ expresion ] */
+parte_arreglo:	ID CTA expresion CTC {
+		if(existe_globalmente($1) != -1){
+			int t = get_type($1);
+			if(t == 1 || t == 2 || t == 3 || t ==4){
+				yyerror("La variable no es un arreglo");
+				exit(0);
+			}
+		} else {
+			yyerror("Variable no declarada");
+			exit(0);
+		}
+	}
+	| parte_arreglo CTA expresion CTC
 	;
 
-/* expresion -> expresion + expresion |
-	expresion - expresion | 
-	expresion * expresion |
-	expresion / expresion | 
-	expresion % expresion |
-	( expresion ) |
-	variable |
-	num | cadena | caracter |
-	id (parametros) */
+/* expresion -> expresion + expresion | expresion - expresion | expresion * expresion | expresion / expresion | expresion % expresion | U | cadena | numero | caracter | id ( H ) */
 expresion:	expresion MAS expresion {$$ = operacion($1,$3,"+");}
 	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
 	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
 	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
-	| expresion MOD expresion {if($1.type == 1 && $3.type == 1)
-									$$ = operacion($1,$3,"%");
-								else{
-									yyerror("Las expresiones deben ser enteras");
-									exit(0);
-								}
+	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
+	| variable {$$ = variable_v($1);}
+	| CADENA {$$ = cadena_s($1);}
+	| ENTERO {$$ = numero_entero($1.ival);}
+	| DOBLE {$$ = numero_doble($1.dval);}
+	| FLOTANTE {$$ = numero_flotante($1.fval);}
+	| CARACTER {$$ = caracter($1);}
+	| ID PRA lista_param PRC {
+		if(existe_globalmente($1)){
+			if(strcmp(get_var($1),"fun") == 0){
+				int *list_args_f = get_list_type($1);
+				num_args = 0;
+				list_args = malloc(sizeof(int) * 100);
+				if(get_num_args($1) == $3.total){
+				for(int i=0;i<$3.total;i++){
+					if($3.args[i] != list_args_f[i]){
+						yyerror("El tipo de argumento no coincide");
+						exit(0);
+					}
+					$$ = funcion_e($1);
+				}
+				}else{
+					yyerror("El numero de argumentos no coincide con el de la funcion");
+					exit(0);
+				}
+			}else{
+				yyerror("No es una funcion");
+				exit(0);
+			}
+		}else{
+			yyerror("Funcion no declarada");
+			exit(0);
+		}
 	}
-	| PRA expresion PRC
-	| variable { if(existe_en_alcance($1) == -1){
-		printf("la variable %s no esta declarada\n",$1);
-	}else{
-
-	}}
-	| ENTERO {
-		$$ = numero_entero($1.ival);
-	}
-	| CADENA {
-		expresion new_exp;
-		sprintf(new_exp.dir, "%d", strlen($1) * 2);
-		new_exp.type = 5;
-		new_exp.first = 4;
-		$$ = new_exp;
-	}
-	| CARACTER {
-		$$ = caracter($1);
-	}
-	| ID PRA parametros PRC 
 	;
-parametros: lista_param
+
+/* lista_param -> lista_param, expresion | expresion */
+lista_param:	lista_param COMA expresion {
+	*(list_args + num_args) = $3.type;
+	num_args++;
+	}
+	| expresion {
+		*(list_args + num_args) = $1.type;
+		num_args++;
+		$$.total = num_args + 1;
+		$$.args = list_args;
+	}
 	;
 
-/* lista_param -> lista_param , expresion | expresion */
-lista_param:	lista_param COMA expresion
-	| expresion
-	;
-
-/* expresion_booleana -> expresion_booleana oo expresion_booleana |
-	expresion_booleana yy expresion_booleana | 
-	no expresion_booleana | 
-	relacional | 
-	verdadero | 
-	falso */
+/* expresion_booleana->expresion_booleana||expresion_booleana|expresion_booleana&&expresion_booleana| !expresion_booleana| (expresion_booleana) | expresion R expresion | true | false */
 expresion_booleana: expresion_booleana OR expresion_booleana { $$ = or($1, $3); }
-	| expresion_booleana AND expresion_booleana { $$ = and($1, $3); }
+	|expresion_booleana AND expresion_booleana { $$ = and($1, $3); }
 	| NOT expresion_booleana {}
 	| relacional {}
 	| TRUE {}
 	| FALSE {}
 	;
 
-/* relacional -> < | > | >= | <= | == | <> | expresion */
-relacional: relacional SMT relacional { $$ = $1; }
+/* R -> < | > | >= | <= | != | == */
+relacional:	relacional SMT relacional { $$ = $1; }
 	| relacional GRT relacional { $$ = $1; }
 	| relacional GREQ relacional { $$ = $1; }
 	| relacional SMEQ relacional { $$ = $1; }
 	| relacional EQEQ relacional { $$ = $1; }
 	| relacional DIF relacional { $$ = $1; }
-	| expresion {exp_temp = $1;}
+	| expresion
 	;
 
 %%
@@ -494,7 +526,7 @@ int existe_globalmente(char* id){
 
 /* Funcion encargada de revisar los tipos, si son correctos toma el de
    mayor rango, e.o.c manda un mensaje de error. 
-   void = 0, int = 1, float = 2, double = 3, char = 4*/
+   void = 0, int = 1, float = 2, double = 3, char = 4, struct = 5*/
 int max(int t1, int t2){
 	if(t1 == t2) return t1;
 	else if (t1 == 1 && t2 == 2) return t1;
@@ -551,6 +583,14 @@ expresion numero_entero(int num){
 	return new_exp;
 }
 
+expresion funcion_e(char* f){
+	expresion new_exp;
+	sprintf(new_exp.dir, "%d", get_dir(f));
+	new_exp.type = get_type(f);
+	new_exp.first = -1;
+	return new_exp;
+}
+
 /* Funcion encargada de tomar un numero flotante y guardarlo como expresion. */
 expresion numero_flotante(float num){
 	expresion new_exp;
@@ -578,12 +618,25 @@ expresion caracter(char c){
 	return new_exp;
 }
 
-/* Funcion encargada de tomar un caracter y guardarlo como expresion. */
-expresion string(char* str){
+/* Funcion de guardar cadenas */
+expresion cadena_s(char* c){
+	ttype t;
 	expresion new_exp;
-	sprintf(new_exp.dir, "%s", str);
-	new_exp.type = 5;
-	new_exp.first = 4;
+	sprintf(new_exp.dir, "%s", c);
+	t.type = "cad";
+	t.dim = strlen(c);
+	t.base = 4;
+	new_exp.type = insert_type(t);;
+	new_exp.first = -1;
+	return new_exp;
+}
+
+/* Funcion para guardar variables */
+expresion variable_v(char* c){
+	expresion new_exp;
+	sprintf(new_exp.dir, "%d", get_dir(c));
+	new_exp.type =  get_type(c);
+	new_exp.first = -1;
 	return new_exp;
 }
 
