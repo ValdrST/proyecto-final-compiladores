@@ -150,4 +150,3 @@ falso				{ yylval.line = yylineno; return FALSE; }
 .					{ printf("\n****Error lexico en la linea: %d\n", yylineno);}
 
 %%
-

@@ -15,7 +15,9 @@
 	extern FILE *yyout;
 	extern int yylineno;
 
+	int is_fun = 0;
 	expresion exp_temp;
+	expresion* temp_var;
 	// Variable que llevara el manejo de direcciones.
 	int dir;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
@@ -61,6 +63,7 @@
 	type tval;
 	expresion eval;
 	num num;
+	code* code_s;
 	char* cadena;
 	char car;
 	args_list args_list;
@@ -117,10 +120,10 @@
 %nonassoc PRA CTA PRC CTC FIN INICIO
 %left IF
 %left ELSE
-%left REGISTRO
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo arg
+%type<code_s> programa funciones declaraciones
 %type<sval> variable
 %type<eval> expresion
 %type<sent> sentencia sentencias
@@ -133,12 +136,16 @@
 programa: { 
 		printf("\nInicializando las pilas....\n");
 		printf("Tabla de simbolos global creada...");
-		init(); 
+		init();
 	} declaraciones funciones {
+		$$ = crea_code();
 		if(busca_main() == -1){
 			yyerror("Falta definir funcion principal");
 			exit(0);
 		}
+		
+		concat_code($$,$2);
+		concat_code($$,$3);
 		print_symbols_table(); 
 		print_types_table(); 
 		print_code(); 
@@ -151,8 +158,28 @@ tipo: base { global_tipo = $1.type; global_dim = $1.dim; } tipo_arreglo  | {}
 	;
 
 /* declaraciones -> tipo lista_var declaraciones | registro inicio declaraciones fin epsilon */
-declaraciones: tipo { global_tipo = $1.type; global_dim = $1.dim; } lista_var declaraciones 
-	| REGISTRO INICIO declaraciones FIN declaraciones
+declaraciones: tipo { global_tipo = $1.type; global_dim = $1.dim;} lista_var declaraciones 
+	| REGISTRO {
+		
+		create_symbols_table();
+		create_types_table();
+		dir_aux = dir;
+		dir = 0;
+		scope++;
+	} INICIO declaraciones FIN {
+		ttype t;
+		t.type = "registro";
+		t.dim = 0;
+		t.base = -1;
+		global_tipo = insert_type_global(t);
+		global_dim = dir;
+		print_symbols_table_2(SYM_STACK.total, "registro");
+		scope--;
+		dir = dir_aux;
+		delete_types_table();
+	} declaraciones {
+		$$ = crea_code();
+	}
 	| {}
 	;
 
@@ -212,7 +239,7 @@ tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 		} else { yyerror("La dimension del arreglo debe ser entera"); exit(0); }
 	}
 	| {
-		if(global_tipo != 0){
+		if(global_tipo != 0 && is_fun != 1){
 			$$.type = global_tipo;
 			$$.dim = global_dim;
 		} else { yyerror("No se pueden declarar variables de tipo sin"); exit(0); }
@@ -221,6 +248,7 @@ tipo_arreglo: CTA ENTERO CTC tipo_arreglo {
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
 funciones:	FUNCION tipo ID {
+		is_fun = 0;
 		num_args = 0;
 		list_args = malloc(sizeof(int) * 100);
 		create_symbols_table();
@@ -230,8 +258,9 @@ funciones:	FUNCION tipo ID {
 		dir = 0;
 	}
 	PRA argumentos PRC INICIO declaraciones sentencias FIN {
+		is_fun = 0;
 		if(existe_globalmente($3) == -1){
-			if($10.retorno == $2.type){
+			//if($9.retorno != $2.type){
 				ttype t;
 				char* tipo = malloc(sizeof(char) * 10);
 				sprintf(tipo, "%d", $2.type);
@@ -251,9 +280,11 @@ funciones:	FUNCION tipo ID {
 				scope--;
 				dir = dir_aux;
 				delete_types_table();
-			} else { 
-				yyerror("El valor de retorno no coincide"); exit(0);
-		}
+			/*} else { 
+				printf("%d %d",$10.lnext,$2.type);
+				yyerror("El valor de retorno no coincide"); 
+				exit(0);
+		}*/
 		
 	} else { 
 			yyerror("Funcion declarada anteriormente"); exit(0); 
@@ -311,11 +342,14 @@ sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
 	| DO sentencias WHILE WHAT expresion_booleana FIN
 	| variable ASIG expresion 
 	| WRITE expresion
-	| READ expresion
+	| READ expresion 
 	| RETURN expresion {
 		label l;
+		printf("retorno bueno\n");
 		$$.retorno = $2.type;}
-	| RETURN {$$.retorno = 0;}
+	| RETURN {
+		printf("retorno sin\n");
+		$$.retorno = 0;}
 	| SWITCH PRA expresion PRC casos predeterminado FIN
 	| BREAK
 	;
@@ -368,7 +402,13 @@ expresion:	expresion MAS expresion {$$ = operacion($1,$3,"+");}
 	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
 	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
 	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
-	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
+	| expresion MOD expresion {if($1.type == 1 && $3.type == 1)
+									$$ = operacion($1,$3,"%");
+								else{
+									yyerror("Las expresiones deben ser enteras");
+									exit(0);
+								}
+	}
 	| PRA expresion PRC
 	| variable { if(existe_en_alcance($1) == -1){
 		printf("la variable %s no esta declarada\n",$1);
@@ -470,13 +510,19 @@ int max(int t1, int t2){
 
 /* Funcion encargada de generar una nueva variable temporal. */
 void new_Temp(char* dir){
-	char* temp;
-	char* num;
+	printf("Nueva variable temporar\n");
+	/* temporales++;
+	temp_var = realloc(temp_var,temporales*sizeof(expresion));
+	(temp_var+temporales-1)->dir = malloc(sizeof(char)*strlen(dir));
+	strcpy(temp_var->dir,dir);*/
+	/*
+	char* temp = (*char)malloc(sizeof(char)*100);
+	char* num =  (*char)malloc(sizeof(char)*100);
 	strcpy(temp, "t");
 	sprintf(num, "%d", temporales);
 	temporales++;
 	strcat(temp, num);
-	strcpy(dir, temp);
+	strcpy(dir, temp);*/
 }
 
 /* Funcion encargada de generar el codigo para las operaciones de expresiones. */

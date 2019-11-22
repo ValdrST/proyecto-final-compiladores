@@ -10,7 +10,7 @@ void init_code(){
 int gen_code(char *op , char *arg1, char *arg2, char *res){
 	quad *q = crea_quad(op,arg1,arg2,res);
 	code *c;
-	*c = CODE;
+	c = &CODE;
 	agregar_cuadrupla(c,op,arg1,arg2,res);
 	return c->num_instrucciones -1;
 }
@@ -27,10 +27,17 @@ quad* crea_quad(char *op , char *arg1, char *arg2, char *res){
 }
 
 void agregar_cuadrupla(code* c, char *op, char* arg1, char *arg2, char* res){
-	quad *q;
+	quad *q, *q_temp;
 	q = crea_quad(op,arg1,arg2,res);
-	*(c->root + c->num_instrucciones) = *q;
-		c->num_instrucciones++;
+	if(c->root == NULL)
+		c->root = q;
+	else{
+		q_temp = c->root;
+		while(q_temp->next == NULL)
+			q_temp = q_temp->next;
+		q_temp->next = q;
+	}
+	c->num_instrucciones++;
 }
 
 code* crea_code(){
@@ -83,12 +90,19 @@ void backpatch(label l, int inst){
 		(CODE.root[l.items[i]]).res = res;
 	}
 }
+void concat_code(code *c1,code *c2){
+	printf("kekekekkee");
+	printf("%d",c2->num_instrucciones);
+	for(int i = 0; i<c2->num_instrucciones; i++){
+		agregar_cuadrupla(c1,c2->root[i].op,c2->root[i].arg1,c2->root[i].arg2,c2->root[i].res);
+	}
+}
 
 /* Funcion que imprime las cuadruplas. */
-void print_code(){
+void print_code(code c){
     printf("\n*** CODIGO INTERMEDIO ***\n");
     printf("inst\top\targ1\targ2\tres\n");
-    for(int i = 0; i < CODE.num_instrucciones; i++){
-        printf("%d\t%s\t%s\t%s\t%s\n",i, CODE.root[i].op, CODE.root[i].arg1, CODE.root[i].arg2, CODE.root[i].res);
+    for(int i = 0; i < c.num_instrucciones; i++){
+        printf("%d\t%s\t%s\t%s\t%s\n",i, c.root[i].op, c.root[i].arg1, c.root[i].arg2, c.root[i].res);
     }
 }

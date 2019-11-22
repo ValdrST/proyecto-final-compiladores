@@ -34,8 +34,9 @@ int search_scope(char *id){
     printf("\nBuscando %s en el mismo alcance....", id);
     symbols_table* top = SYM_STACK.tables + SYM_STACK.total;
     for(int i = 0; i <= top->total; i++)
-        if(strcmp(id, (top->symbols + i)->id) == 0)
+        if(strcmp(id, (top->symbols + i)->id) == 0){
             return i;
+        }
     return -1;
 }
 

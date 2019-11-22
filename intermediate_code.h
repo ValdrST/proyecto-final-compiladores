@@ -34,6 +34,7 @@ code CODE;
 
 // Funciones:
 
+void concat_code(code *c1,code *c2);
 void init_code();
 quad *crea_quad(char *op, char *arg1, char *arg2, char *res);
 code *crea_code();

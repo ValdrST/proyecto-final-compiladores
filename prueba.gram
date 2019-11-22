@@ -4,16 +4,10 @@ dreal drvar_1
 car letra
 func ent main() 
 inicio
-	ent z
 	devolver 1
 fin
 
 func ent sum(ent x ent y)
 inicio
 	devolver x + y
-fin
-
-func sin nada(ent x)
-inicio
-	devolver
 fin
