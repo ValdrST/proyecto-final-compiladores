@@ -33,6 +33,8 @@
 	int* list_args;
 	// Variable que nos ayuda a saber en que alcance estamos.
 	int scope;
+	// Variable que dice si hay un registro en camino
+	int has_reg;
 
 	void init();
 	int busca_main();
@@ -48,7 +50,7 @@
 	expresion funcion_e(char* f);
 	expresion caracter(char);
 	expresion variable_v(char* c);
-		expresion cadena_s(char* c);
+	expresion cadena_s(char* c);
 	condition relacional(expresion, expresion, char*);
 	condition and(condition, condition);
 	condition or(condition, condition);
@@ -166,6 +168,7 @@ tipo: INT { $$.type = 1; $$.dim = 2; }
 		dir_aux = dir;
 		dir = 0;
 		scope++;
+		has_reg = 1;
 	}  INICIO declaraciones FIN { 
 		ttype t;
 		t.type = "registro";
@@ -244,9 +247,19 @@ funciones: FUNCION tipo ID {
 		scope++;
 		dir_aux = dir;
 		dir = 0;
+		has_reg = 0;
+		if($2.type == 0){
+			yyerror("No se pueden declarar variables sin dentro de funciones"); exit(0);
+		}
 	}
 	PRA argumentos PRC INICIO declaraciones sentencias FIN {
 		if(existe_globalmente($3) == -1){
+			if(has_reg == 1){
+				yyerror("No se pueden declarar registros dentro de funciones"); exit(0);
+			}
+			if($2.type != 1 && $2.type != 2 && $2.type != 3 && $2.type != 4 && $2.type != 0){
+				yyerror("Las funciones no pueden devolver registros"); exit(0);
+			}
 			//if(strcpm($2.type, $10.return) == 0){
 				ttype t;
 				char* tipo = malloc(sizeof(char) * 10);
@@ -258,7 +271,7 @@ funciones: FUNCION tipo ID {
 				symbol sym;
 				sym.id = $3;
 				sym.dir = -1;
-				sym.type = $2.type; // Falta agregar el tipo t.
+				sym.type = $2.type;
 				sym.var = "fun";
 				sym.num_args = $6.total;
 				sym.list_types = $6.args;
