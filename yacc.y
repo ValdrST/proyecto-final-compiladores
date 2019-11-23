@@ -218,7 +218,6 @@ lista_var: 	lista_var COMA ID tipo_arreglo {
 	}
 	;
 
-/* C -> [numero] C | epsilon */
 /* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
 tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
 		ttype t;
