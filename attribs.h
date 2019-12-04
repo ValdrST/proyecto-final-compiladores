@@ -25,6 +25,11 @@ typedef struct _num{
     float fval;
 } num;
 
+typedef struct _stack_dir{
+    int dir[100];
+    int numDirs;
+} stack_dir;
+
 /* Estructura para el manejo de sentencias. */
 typedef struct _sentence{
     label lnext;

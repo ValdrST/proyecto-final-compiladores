@@ -4,8 +4,10 @@
 	#include <string.h>
 	#include <stdlib.h>
 	#include "attribs.h"
-	#include "symbols.h"
-	#include "types.h"
+	#include "pilaTablaSimbol.h"
+	#include "pilaTablaTipo.h"
+	#include "tablaSimbol.h"
+	#include "tablaTipo.h"
 	#include "intermediate_code.h"
 
 	extern int yylex();
@@ -17,6 +19,15 @@
 
 	// Variable que llevara el manejo de direcciones.
 	int dir;
+
+	stackDir stack_dir;
+
+	symstack *StackTS;
+
+	typestack *StackTT;
+	type base;
+	typetab *tt_global;
+	symtab *ts_global;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
 	int dir_aux;
 	// Variable que llevara la cuenta de variables temporales.
@@ -126,7 +137,7 @@
 %left ELSE
 
 /* Tipos */
-%type<tval> tipo tipo_arreglo I
+%type<tval> base tipo tipo_arreglo tipo_registro declaraciones
 %type<sval> variable
 %type<args_list> argumentos lista_arg lista_param
 %type<eval> expresion
@@ -135,73 +146,98 @@
 %%
 
 /* programa -> declaraciones funciones */
-programa: { 
+programa:{ 
 		printf("\nInicializando las pilas....\n");
 		printf("Tabla de simbolos global creada...");
-		init(); 
+		stackDir.numDirs = 0;
+		dir = 0;
+		StackTT = crearTypeStack();
+		StackTS = crearSymStack();
+		typetab *tt = crearTypeTab();
+		symtab *ts = crearSymTab();
+		insertarTypeTab(StackTT,tt);
+		insertarSymTab(StackTS,st);
 	} declaraciones funciones {
 		if(busca_main() == -1){
 			yyerror("Falta definir funcion principal");
 			exit(0);
 		}
-		print_symbols_table(); 
-		print_types_table(); 
-		print_code(); 
+		//print_symbols_table(); 
+		//print_types_table(); 
+		//print_code(); 
 	}
 	;
 
 
-/* declaraciones -> tipo lista_var declaraciones | epsilon*/
-declaraciones: 	tipo { global_tipo = $1.type; global_dim = $1.dim; } lista_var declaraciones
+/* declaraciones -> tipo lista_var declaraciones 
+	| tipo_registro lista_var declaraciones | epsilon */
+declaraciones: tipo lista_var declaraciones { $$.type = $1.type;}
+	| tipo_registro lista_var declaraciones { $$.type = $1.type;}
 	| {}
 	;
 
+/* tipo_registro -> registro inicio declaraciones fin */
+tipo_registro: REGISTRO INICIO declaraciones FIN {
+	typetab *tt = crearTypeTab();
+	symtab *ts = crearSymTab();
+	stackDir.dir[stackDir.numDirs] = dir;
+	stackDir.numDirs++;
+	dir = 0;
+	insertarTypeTab(StackTT,tt);
+	insertarSymTab(StackTS,st);
+	stackDir.numDirs--;
+	dir = stackDir.dir[stackDir.numDirs];
+	typetab tt1 = sacarTypeTab(StackTT);
+	tt_global = getCimaType(StackTT);
+	ts1 = sacarSymTab(StackTS);
+	stackDir.numDirs--;
+	dir = stackDir.dir[stackDir.numDirs];
+	$$.type = insertarTipo(getCimaType(StackTT),crearTipo(5,"registro",0, 0));
+	}
+
+tipo: base tipo_arreglo{
+	base = $1;
+	$$ = $2;
+};
+
+
 /* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-tipo: INT { $$.type = 1; $$.dim = 2; }
+base: INT { $$.type = 1; $$.dim = 2; }
 	| FLOAT { $$.type = 2; $$.dim = 4; }
 	| DOUBLE { $$.type = 3; $$.dim = 8; }
 	| CHAR { $$.type = 4; $$.dim = 1; }
 	| VOID { $$.type = 0; $$.dim = 0; }
-	| REGISTRO {
-		create_symbols_table();
-		create_types_table();
-		dir_aux = dir;
-		dir = 0;
-		scope++;
-		has_reg = 1;
-	}  INICIO declaraciones FIN { 
+
+
+/* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
+tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
 		ttype t;
-		t.type = "registro";
-		t.dim = 0;
-		t.base = -1;
-		$$.type = insert_type_global(t);
-		$$.dim = dir;
-		print_symbols_table_2(SYM_STACK.total, "struct");
-		scope--;
-		dir = dir_aux;
-		delete_types_table();
+		if($2.type == 1 && $2.ival > 0){
+			t.type = "array";
+			t.dim = $2.ival;
+			t.base = $4.type;
+			$$.type = insert_type(t);
+			$$.dim = $4.dim * $2.ival;
+		} else { yyerror("La dimension del arreglo debe ser entera"); exit(0); }
+	}
+	| {
+		$$ = base;
 	}
 	;
 
 /* lista_var -> lista_var, id tipo_arreglo | id tipo_arreglo */
-lista_var: 	lista_var COMA ID tipo_arreglo { 
-		if(existe_en_alcance($3) == -1){
-			symbol sym;
-			sym.id = $3;
-			sym.dir = dir;
-			sym.type = $4.type;
-			sym.var = "var";
-			sym.num_args = 0;
-			sym.list_types = malloc(sizeof(int));
-			if(scope > 0)
-				insert_symbol(sym);
-			else 
-				insert_global_symbol(sym);
+lista_var: 	lista_var COMA ID { 
+		if(buscar(getCima(StackTS),$3) == -1){
+			symbol sym = crearSymbol();
+			sym->id = $3;
+			sym->dir = dir;
+			sym->tipo = $4.type;
+			strcmp(ym->tipo_var,"var");
 			dir += $4.dim;
 		} else{ yyerror("Identificadores duplicados en el mismo alcance"); exit(0); }
 	}
-	| ID tipo_arreglo {
-		if(existe_en_alcance($1) == -1){
+	| ID {
+		if(buscar(getCima(StackTS),$3) == -1){
 			symbol sym;
 			sym.id = $1;
 			sym.dir = dir;
@@ -218,24 +254,6 @@ lista_var: 	lista_var COMA ID tipo_arreglo {
 	}
 	;
 
-/* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
-		ttype t;
-		if($2.type == 1){
-			t.type = "array";
-			t.dim = $2.ival;
-			t.base = $4.type;
-			$$.type = insert_type(t);
-			$$.dim = $4.dim * $2.ival;
-		} else { yyerror("La dimension del arreglo debe ser entera"); exit(0); }
-	}
-	| { 
-		if(global_tipo != 0){
-			$$.type = global_tipo;
-			$$.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
-	}
-	;
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
 funciones: FUNCION tipo ID {
