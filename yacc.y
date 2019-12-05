@@ -23,7 +23,7 @@
 	stack_dir stackDir;
 
 	symstack *StackTS;
-
+	stack_cad StackCad;
 	typestack *StackTT;
 	ttype base;
 	typetab *tt_global;
@@ -147,7 +147,7 @@
 
 /* programa -> declaraciones funciones */
 programa:{ 
-		stackDir.numDirs = 0;
+		stackDir = crearStackDir();
 		dir = 0;
 		StackTT = crearTypeStack();
 		StackTS = crearSymStack();
@@ -155,23 +155,27 @@ programa:{
 		symtab *ts = crearSymTab();
 		insertarTypeTab(StackTT,tt);
 		insertarSymTab(StackTS,ts);
+		StackCad = crearStackCad();
 	} declaraciones funciones {
 		//print_symbols_table(); 
 		//print_types_table(); 
-		//print_code(); 
+		//print_code();
 	}
 	;
 
 
 /* declaraciones -> tipo lista_var declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
-declaraciones: tipo lista_var declaraciones {}
-	| tipo_registro lista_var declaraciones {}
+declaraciones: tipo  lista_var declaraciones {$$ = $1;}
+	| tipo_registro  lista_var declaraciones {$$ = $1;}
 	| {}
 	;
 
 /* tipo_registro -> registro inicio declaraciones fin */
-tipo_registro: REGISTRO INICIO declaraciones FIN;
+tipo_registro: REGISTRO INICIO declaraciones{
+	typetab *tt = crearTypeTab();
+	symtab *ts = crearSymTab();
+} FIN;
 
 tipo: base tipo_arreglo{
 	base = $1;
@@ -180,11 +184,11 @@ tipo: base tipo_arreglo{
 
 
 /* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-base: ENT {}
-	| REAL {}
-	| DREAL {}
-	| CAR {}
-	| SIN {}
+base: ENT {$$.tipo = 1; $$.dim = 4;}
+	| REAL {$$.tipo = 2; $$.dim = 8;}
+	| DREAL {$$.tipo = 3; $$.dim = 16;}
+	| CAR {$$.tipo = 4; $$.dim = 2;}
+	| SIN {$$.tipo = 0; $$.dim = 0;}
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */

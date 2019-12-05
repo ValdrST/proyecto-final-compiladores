@@ -1,4 +1,4 @@
-#ifndef ATTRIBS_H
+#ifndef ATTRIBS_H_INCLUDED
 #include "intermediate_code.h"
 
 /* Estructura para el manejo de expresiones. */
@@ -55,7 +55,9 @@ typedef struct _args_list{
     int total;
 } args_list;
 
-stack_cad *crearStackCad();
-void addStackCad(stack_cad sc,char* cad);
-#define ATTRIBS_H
+stack_cad crearStackCad();
+void addStackCad(stack_cad *sc,char* cad);
+stack_dir crearStackDir();
+void addStackDir(stack_dir *sd,int dir);
+#define ATTRIBS_H_INCLUDED
 #endif

@@ -9,7 +9,8 @@ all:
 	gcc -g -std=c99 -c -o pilaTablaSimbol.o pilaTablaSimbol.c
 	gcc -g -std=c99 -c -o tablaTipo.o tablaTipo.c
 	gcc -g -std=c99 -c -o pilaTablaTipo.o pilaTablaTipo.c
-	gcc -g -std=c99 -o p tablaTipo.o tablaSimbol.o intermediate_code.o pilaTablaSimbol.o pilaTablaTipo.o yacc.tab.c lex.yy.c -lfl
+	gcc -g -std=c99 -c -o attribs.o attribs.c
+	gcc -g -std=c99 -o p tablaTipo.o attribs.o tablaSimbol.o intermediate_code.o pilaTablaSimbol.o pilaTablaTipo.o yacc.tab.c lex.yy.c -lfl
 
 clean:
 	rm -f p

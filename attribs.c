@@ -1,22 +1,36 @@
-#include "attribs.h"
 #include <stdlib.h>
+#include <string.h>
+#include "attribs.h"
 stack_cad crearStackCad(){
-    stack_cad *sc = malloc(sc*sizeof(stack_cad));
-    sc->cval = '\0';
+    stack_cad *sc = malloc(sizeof(stack_cad));
+    strcpy(sc->cval,"\0");
     sc->next = NULL;
     return *sc; 
 }
 
 void addStackCad(stack_cad *sc,char* cad){
+
+    stack_cad *aux, *sc_aux;
+    sc_aux = sc;
     do{
-        stack_cad *aux, *sc_aux;
-        sc_aux = sc;
+        
         if(sc_aux->next == NULL){
-            sc->next = malloc(sc*sizeof(stack_cad));
+            sc->next = malloc(sizeof(stack_cad));
             aux = sc->next;
             strcpy(aux->cval,cad);
             break;
         }else
             sc_aux = sc_aux->next;
     }while(sc_aux->next != NULL);
+}
+
+void addStackDir(stack_dir *sd,int dir){
+    sd->dir[sd->numDirs] = dir;
+    sd->numDirs++;
+}
+
+stack_dir crearStackDir(){
+    stack_dir sd;
+    sd.numDirs = 0;
+    return sd;
 }
