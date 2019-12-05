@@ -147,8 +147,6 @@
 
 /* programa -> declaraciones funciones */
 programa:{ 
-		printf("\nInicializando las pilas....\n");
-		printf("Tabla de simbolos global creada...");
 		stackDir.numDirs = 0;
 		dir = 0;
 		StackTT = crearTypeStack();
@@ -217,9 +215,17 @@ lista_arg:	lista_arg arg
 	| arg
 	;
 
-/* arg -> tipo id  */
-arg: tipo ID
+/* arg -> tipo_arg id  */
+arg: tipo_arg ID
 	;
+
+/* tipo_arg -> base param_arr | epsilon */
+tipo_arg: base param_arr | {}
+
+
+/* param_arr -> [] param_arr | epsilon */
+param_arr: LCOR DCOR param_arr | {}
+
 
 /* sentencias->sentencias sentencia | sentencias */
 sentencias: sentencias sentencia {$$ = $1;}
@@ -246,22 +252,22 @@ sentencias: sentencias sentencia {$$ = $1;}
 sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN
 	| SI expresion_booleana sentencias SINO sentencias FIN
 	| MIENTRAS expresion_booleana HACER sentencias FIN
-	| HACER sentencias MIENTRAS_QUE expresion_booleana FIN
+	| HACER sentencias MIENTRAS_QUE expresion_booleana
 	| ID ASIG expresion 
 	| ESCRIBIR expresion
-	| LEER expresion 
-	| DEVOLVER expresion 
+	| LEER variable
 	| DEVOLVER
-	| SEGUN PRA expresion PRC casos predeterminado FIN
+	| DEVOLVER expresion 
 	| TERMINAR
 	;
-/* casos -> case : numero S J | epsilon */
-casos:	CASO NUM DPTS sentencias
-	|	casos CASO NUM DPTS sentencias
-	;
 
-/* predeterminado -> predet : setencias | epsilon */
-predeterminado:	PREDET DPTS sentencias |
+/* expresion_booleana->expresion_booleana||expresion_booleana|expresion_booleana&&expresion_booleana| !expresion_booleana| (expresion_booleana) | expresion R expresion | true | false */
+expresion_booleana: expresion_booleana OO expresion_booleana { $$ = or($1, $3); }
+	|expresion_booleana YY expresion_booleana { $$ = and($1, $3); }
+	| NOT expresion_booleana {}
+	| relacional {}
+	| TRUE {}
+	| FALSE {}
 	;
 
 
@@ -283,11 +289,11 @@ expresion / expresion |
 expresion % expresion | (expresion) 
 variable | num | cadena  | caracter | id ( parametros ) */
 
-expresion: expresion MAS expresion {$$ = operacion($1,$3,"+");}
-	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
-	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
-	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
-	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
+expresion: expresion MAS expresion
+	| expresion MENOS expresion 
+	| expresion PROD expresion 
+	| expresion DIV expresion 
+	| expresion MOD expresion 
 	| PRA expresion PRC
 	| variable
 	| NUM
@@ -295,10 +301,6 @@ expresion: expresion MAS expresion {$$ = operacion($1,$3,"+");}
 	| CARACTER 
 	| ID PRA parametros PRC
 	;
-/* param_arr -> id[] | param_arr [] */
-
-param_arr: ID LCOR DCOR 
-	| param_arr LCOR DCOR
 
 /* variable -> id | parte_arreglo | id . id */
 variable: ID arreglo
@@ -329,14 +331,6 @@ lista_param:	lista_param COMA expresion {
 	}
 	;
 
-/* expresion_booleana->expresion_booleana||expresion_booleana|expresion_booleana&&expresion_booleana| !expresion_booleana| (expresion_booleana) | expresion R expresion | true | false */
-expresion_booleana: expresion_booleana OO expresion_booleana { $$ = or($1, $3); }
-	|expresion_booleana YY expresion_booleana { $$ = and($1, $3); }
-	| NOT expresion_booleana {}
-	| relacional {}
-	| TRUE {}
-	| FALSE {}
-	;
 
 
 
@@ -357,40 +351,6 @@ int max(int t1, int t2){
 	else if (t1 == 3 && t1 == 2) return t1;
 	else if (t1 == 2 && t2 == 3) return t2;
 	else{ yyerror("Tipos no compatibles"); return -1; }
-}
-
-/* Funcion encargada de generar una nueva variable temporal. */
-void new_Temp(char* dir){
-	printf("Nueva variable temporar\n");
-	/* temporales++;
-	temp_var = realloc(temp_var,temporales*sizeof(expresion));
-	(temp_var+temporales-1)->dir = malloc(sizeof(char)*strlen(dir));
-	strcpy(temp_var->dir,dir);*/
-	/*
-	char* temp = (*char)malloc(sizeof(char)*100);
-	char* num =  (*char)malloc(sizeof(char)*100);
-	strcpy(temp, "t");
-	sprintf(num, "%d", temporales);
-	temporales++;
-	strcat(temp, num);
-	strcpy(dir, temp);*/
-}
-
-/* Funcion encargada de generar el codigo para las operaciones de expresiones. */
-expresion operacion(expresion e1, expresion e2, char* op){
-	expresion new_exp;
-	new_exp.type = max(e1.type, e2.type);
-	new_Temp(new_exp.dir);
-	siginst = gen_code(op, e1.dir, e2.dir, new_exp.dir);
-	if(e1.first != -1)
-		new_exp.first = e1.first;
-	else{
-		if(e2.first != -1)
-			new_exp.first = e2.first;
-		else
-			new_exp.first = siginst;
-	}
-	return new_exp;
 }
 
 /* Funcion encargada de tomar un numero entero y guardarlo como expresion. */
