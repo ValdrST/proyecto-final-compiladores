@@ -29,7 +29,7 @@ listParam *crearLP(){
 }
 
 /* Agrega al final de la lista el parametro e incrementa num */
-void add(listParam* lp, int tipo){
+void add_tipo(listParam* lp, int tipo){
     param* parametro = crearParam(tipo);
     if(lp->root == NULL){
         lp->root = parametro;
@@ -70,7 +70,7 @@ symbol* crearSymbol(char *id, int tipo, int dir, int tipoVar){
         strcpy(sym_tmp->id, id);
         sym_tmp->tipo = tipo;
         sym_tmp->dir = dir;
-        sym_tmp->tipoVar = tipoVar;
+        sprintf(sym_tmp->tipoVar, "%d", tipoVar);
         sym_tmp->params = crearLP();
         sym_tmp->next = NULL;
     }

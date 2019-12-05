@@ -5,9 +5,11 @@ all:
 	cat encabezado.txt > yacc.tab.h
 	flex lex.l
 	gcc -g -std=c99 -c -o intermediate_code.o intermediate_code.c
-	gcc -g -std=c99 -c -o symbols.o symbols.c
-	gcc -g -std=c99 -c -o types.o types.c
-	gcc -g -o p intermediate_code.o symbols.o types.o attribs.h yacc.tab.c lex.yy.c -lfl
+	gcc -g -std=c99 -c -o tablaSimbol.o tablaSimbol.c
+	gcc -g -std=c99 -c -o pilaTablaSimbol.o pilaTablaSimbol.c
+	gcc -g -std=c99 -c -o tablaTipo.o tablaTipo.c
+	gcc -g -std=c99 -c -o pilaTablaTipo.o pilaTablaTipo.c
+	gcc -g -o p intermediate_code.o attribs.h yacc.tab.c lex.yy.c -lfl
 
 clean:
 	rm -f p

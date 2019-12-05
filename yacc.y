@@ -20,7 +20,7 @@
 	// Variable que llevara el manejo de direcciones.
 	int dir;
 
-	stackDir stack_dir;
+	stack_dir stackDir;
 
 	symstack *StackTS;
 
@@ -76,10 +76,10 @@
 %union{
 	int line;
 	char* sval;
-	type tval;
+	tipo tval;
 	expresion eval;
 	num num;
-	char car;
+	car car;
 	args_list args_list;
 	condition cond;
 	sentence sent;
@@ -88,52 +88,53 @@
 %start programa
 
 %token<sval> ID
-%token<num> ENTERO
-%token<num> DOBLE
-%token<num> FLOTANTE
-%token INT
-%token FLOAT
-%token DOUBLE
-%token VOID
-%token STRUCT
+%token<num> NUM
+%token ENT
+%token REAL
+%token CAR
+%token DREAL
+%token SIN
+%token REGISTRO
 %token LLA
 %token LLC
 %token COMA
 %token DPTS
 %token PT
-%token FUNCION
-%token IF
-%token WHILE
-%token DO
-%token FOR
-%token RETURN
-%token SWITCH
-%token BREAK
-%token PRINT
-%token CASE
-%token DEFAULT
+%token FUNC
+%token SI
+%token MIENTRAS
+%token MIENTRAS_QUE
+%token HACER
+%token VERDADERO
+%token FALSO
+%token DEVOLVER
+%token SEGUN
+%token TERMINAR
+%token CASO
+%token PREDET
 %token<sval> CADENA
-%token<car> CAR
+%token<car> CARACTER
 %token TRUE
 %token FALSE
-%token THEN
+%token ENTONCES
 %token WHAT
-%token REGISTRO
-%token READ
-%token WRITE
+%token LEER
+%token ESCRIBIR
+%token DCOR
+%token LCOR
 
 /* Presedencia y asociatividad de operadores */
 %left ASIG
-%left OR
-%left AND
+%left OO
+%left YY
 %left<sval> EQEQ DIF
 %left<sval> GRT SMT GREQ SMEQ
 %left<sval> MAS MENOS
 %left<sval> PROD DIV MOD
 %left NOT
 %nonassoc PRA CTA PRC CTC INICIO FIN
-%left IF
-%left ELSE
+%left SI
+%left SINO
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo tipo_registro declaraciones
@@ -155,7 +156,7 @@ programa:{
 		typetab *tt = crearTypeTab();
 		symtab *ts = crearSymTab();
 		insertarTypeTab(StackTT,tt);
-		insertarSymTab(StackTS,st);
+		insertarSymTab(StackTS,ts);
 	} declaraciones funciones {
 		if(busca_main() == -1){
 			yyerror("Falta definir funcion principal");
@@ -183,7 +184,7 @@ tipo_registro: REGISTRO INICIO declaraciones FIN {
 	stackDir.numDirs++;
 	dir = 0;
 	insertarTypeTab(StackTT,tt);
-	insertarSymTab(StackTS,st);
+	insertarSymTab(StackTS,ts);
 	stackDir.numDirs--;
 	dir = stackDir.dir[stackDir.numDirs];
 	typetab tt1 = sacarTypeTab(StackTT);
@@ -201,16 +202,16 @@ tipo: base tipo_arreglo{
 
 
 /* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-base: INT { $$.type = 1; $$.dim = 2; }
-	| FLOAT { $$.type = 2; $$.dim = 4; }
-	| DOUBLE { $$.type = 3; $$.dim = 8; }
+base: ENT { $$.type = 1; $$.dim = 2; }
+	| REAL { $$.type = 2; $$.dim = 4; }
+	| DREAL { $$.type = 3; $$.dim = 8; }
 	| CAR { $$.type = 4; $$.dim = 1; }
-	| VOID { $$.type = 0; $$.dim = 0; }
+	| SIN { $$.type = 0; $$.dim = 0; }
 
 
-/* tipo_arreglo -> [numero] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA ENTERO CTC tipo_arreglo {
-		ttype t;
+/* tipo_arreglo -> [num] tipo_arreglo | epsilon */
+tipo_arreglo:	CTA NUM CTC tipo_arreglo {
+		type t;
 		if($2.type == 1 && $2.ival > 0){
 			t.type = "array";
 			t.dim = $2.ival;
@@ -230,17 +231,17 @@ lista_var: 	lista_var COMA ID {
 			symbol sym = crearSymbol();
 			sym->id = $3;
 			sym->dir = dir;
-			sym->tipo = $4.type;
+			sym->tipo = $3.tipo;
 			strcmp(ym->tipo_var,"var");
-			dir += $4.dim;
+			dir += $3.dim;
 		} else{ yyerror("Identificadores duplicados en el mismo alcance"); exit(0); }
 	}
 	| ID {
-		if(buscar(getCima(StackTS),$3) == -1){
+		if(buscar(getCima(StackTS),$1) == -1){
 			symbol sym;
 			sym.id = $1;
 			sym.dir = dir;
-			sym.type = $2.type;
+			sym.type = $1.tipo;
 			sym.var = "var";
 			sym.num_args = 0;
 			sym.list_types = malloc(sizeof(int));
@@ -248,14 +249,14 @@ lista_var: 	lista_var COMA ID {
 				insert_symbol(sym);
 			else
 				insert_global_symbol(sym);
-			dir += $2.dim;
+			dir += $1.dim;
 		} else{ yyerror("Identificadores duplicados en el mismo alcance"); exit(0); }
 	}
 	;
 
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones: FUNCION tipo ID {
+funciones: FUNC tipo ID {
 		num_args = 0;
 		list_args = malloc(sizeof(int) * 100);
 		create_symbols_table();
@@ -305,65 +306,16 @@ funciones: FUNCION tipo ID {
 
 /* A -> G | epsilon */
 argumentos:	lista_arg { $$ = $1; }
-	| { $$.total = 0; }
+	| SIN { $$.total = 0; }
 	;
 
-/* G -> G , T id I | T id I */
-lista_arg:	lista_arg COMA tipo {
-		global_tipo = $3.type;
-		global_dim = $3.dim;
-	}
-	ID I {
-		if(existe_en_alcance($5) == -1){
-			symbol sym;
-			sym.id = $5;
-			sym.dir = dir;
-			sym.type = $6.type;
-			sym.var = "par";
-			sym.num_args = 0;
-			insert_symbol(sym);
-			dir += $6.dim;
-			*(list_args + num_args) = $6.type;
-			num_args++;
-		} else { yyerror("Parametro duplicado en funcion"); exit(0); }
-	}
-	| tipo {
-		global_tipo = $1.type;
-		global_dim = $1.dim;
-	}
-	ID I {
-		if(existe_en_alcance($3) == -1){
-			symbol sym;
-			sym.id = $3;
-			sym.dir = dir;
-			sym.type = $4.type;
-			sym.var = "par";
-			sym.num_args = 0;
-			insert_symbol(sym);
-			dir += $4.dim;
-			*(list_args + num_args) = $4.type;
-			num_args++;
-			$$.total = num_args + 1;
-			$$.args = list_args;
-		} else { yyerror("Parametro duplicado en funcion"); exit(0); }
-	}
+/* lista_arg -> lista_arg arg | arg */
+lista_arg:	lista_arg arg
+	| arg
 	;
 
-/* I -> [] I | epsilon */
-I:	CTA CTC I {
-		ttype t;
-		t.type = "array";
-		t.dim = $3.dim;
-		t.base = $3.type;
-		$$.type = insert_type(t);
-		$$.dim = $3.dim;
-	}
-	| {
-		if(global_tipo != 0){
-			$$.type = global_tipo;
-			$$.dim = global_dim;
-		} else { yyerror("No se pueden declarar variables de tipo void"); exit(0); }
-	}
+/* arg -> tipo id  */
+arg: tipo ID
 	;
 
 /* sentencias->sentencias sentencia | sentencias */
@@ -388,27 +340,62 @@ sentencias: sentencias sentencia {$$ = $1;}
 	segun (expresion)
 	casos predeterminado
 	fin|terminar */
-sentencia: 	IF expresion_booleana sentencias THEN sentencias FIN
-	| IF expresion_booleana sentencias ELSE sentencias FIN
-	| WHILE expresion_booleana sentencias FIN
-	| DO sentencias WHILE WHAT expresion_booleana FIN
-	| variable ASIG expresion 
-	| WRITE expresion
-	| READ expresion 
-	| RETURN expresion 
-	| RETURN
-	| SWITCH PRA expresion PRC casos predeterminado FIN
-	| BREAK
+sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN
+	| SI expresion_booleana sentencias SINO sentencias FIN
+	| MIENTRAS expresion_booleana HACER sentencias FIN
+	| HACER sentencias MIENTRAS_QUE expresion_booleana FIN
+	| ID ASIG expresion 
+	| ESCRIBIR expresion
+	| LEER expresion 
+	| DEVOLVER expresion 
+	| DEVOLVER
+	| SEGUN PRA expresion PRC casos predeterminado FIN
+	| TERMINAR
 	;
 /* casos -> case : numero S J | epsilon */
-casos:	CASE ENTERO DPTS ENTERO sentencias
-	|	casos CASE ENTERO DPTS sentencias
+casos:	CASO NUM DPTS sentencias
+	|	casos CASO NUM DPTS sentencias
 	;
 
 /* predeterminado -> predet : setencias | epsilon */
-predeterminado:	DEFAULT DPTS sentencias |
+predeterminado:	PREDET DPTS sentencias |
 	;
 
+
+/* R -> < | > | >= | <= | != | == */
+relacional:	relacional SMT relacional { $$ = $1; }
+	| relacional GRT relacional { $$ = $1; }
+	| relacional GREQ relacional { $$ = $1; }
+	| relacional SMEQ relacional { $$ = $1; }
+	| relacional EQEQ relacional { $$ = $1; }
+	| relacional DIF relacional { $$ = $1; }
+	| expresion {}
+	;
+
+
+/* expresion -> expresion + expresion | 
+expresion - expresion | 
+expresion * expresion | 
+expresion / expresion | 
+expresion % expresion | (expresion) 
+variable | num | cadena  | caracter | id ( parametros ) */
+
+expresion: expresion MAS expresion {$$ = operacion($1,$3,"+");}
+	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
+	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
+	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
+	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
+	| PRA expresion PRC
+	| variable
+	| NUM
+	| CADENA 
+	| CARACTER 
+	| ID PRA parametros PRC
+	;
+/* param_arr -> id[] | param_arr [] */
+
+param_arr: ID LCOR DCOR 
+	| param_arr LCOR DCOR
 
 /* variable -> id | parte_arreglo | id . id */
 variable: ID {
@@ -419,23 +406,12 @@ variable: ID {
 		}	
 	}
 	| parte_arreglo
-	| ID PT ID {
-		if(existe_globalmente($1) != -1){
-			int t = get_type($1);
-			if(t == 1 || t == 2 || t == 3 || t ==4){
-				yyerror("La variable no es un registro");
-				exit(0);
-			}
-			$$ = $1;
-		} else {
-			yyerror("Variable no declarada");
-			exit(0);
-		}
-	}
+	| ID PT ID 
 	;
 
+
 /* parte_arreglo -> id [ expresion ] | parte_arreglo [ expresion ] */
-parte_arreglo:	ID CTA expresion CTC {
+parte_arreglo:	ID LCOR expresion DCOR {
 		if(existe_globalmente($1) != -1){
 			int t = get_type($1);
 			if(t == 1 || t == 2 || t == 3 || t ==4){
@@ -446,49 +422,13 @@ parte_arreglo:	ID CTA expresion CTC {
 			yyerror("Variable no declarada");
 			exit(0);
 		}
-	}
-	| parte_arreglo CTA expresion CTC
+	} parte_arreglo  
+	| {}
 	;
 
-/* expresion -> expresion + expresion | expresion - expresion | expresion * expresion | expresion / expresion | expresion % expresion | U | cadena | numero | caracter | id ( H ) */
-expresion:	expresion MAS expresion {$$ = operacion($1,$3,"+");}
-	| expresion MENOS expresion {$$ = operacion($1,$3,"-");}
-	| expresion PROD expresion {$$ = operacion($1,$3,"*");}
-	| expresion DIV expresion {$$ = operacion($1,$3,"/");}
-	| expresion MOD expresion {$$ = operacion($1,$3,"%");}
-	| variable {$$ = variable_v($1);}
-	| CADENA {$$ = cadena_s($1);}
-	| ENTERO {$$ = numero_entero($1.ival);}
-	| DOBLE {$$ = numero_doble($1.dval);}
-	| FLOTANTE {$$ = numero_flotante($1.fval);}
-	| CARACTER {$$ = caracter($1);}
-	| ID PRA lista_param PRC {
-		if(existe_globalmente($1)){
-			if(strcmp(get_var($1),"fun") == 0){
-				int *list_args_f = get_list_type($1);
-				num_args = 0;
-				list_args = malloc(sizeof(int) * 100);
-				if(get_num_args($1) == $3.total){
-				for(int i=0;i<$3.total;i++){
-					if($3.args[i] != list_args_f[i]){
-						yyerror("El tipo de argumento no coincide");
-						exit(0);
-					}
-					$$ = funcion_e($1);
-				}
-				}else{
-					yyerror("El numero de argumentos no coincide con el de la funcion");
-					exit(0);
-				}
-			}else{
-				yyerror("No es una funcion");
-				exit(0);
-			}
-		}else{
-			yyerror("Funcion no declarada");
-			exit(0);
-		}
-	}
+/*parametros -> lista_param | epsilon*/
+parametros: lista_param 
+	|
 	;
 
 /* lista_param -> lista_param, expresion | expresion */
@@ -505,23 +445,15 @@ lista_param:	lista_param COMA expresion {
 	;
 
 /* expresion_booleana->expresion_booleana||expresion_booleana|expresion_booleana&&expresion_booleana| !expresion_booleana| (expresion_booleana) | expresion R expresion | true | false */
-expresion_booleana: expresion_booleana OR expresion_booleana { $$ = or($1, $3); }
-	|expresion_booleana AND expresion_booleana { $$ = and($1, $3); }
+expresion_booleana: expresion_booleana OO expresion_booleana { $$ = or($1, $3); }
+	|expresion_booleana YY expresion_booleana { $$ = and($1, $3); }
 	| NOT expresion_booleana {}
 	| relacional {}
 	| TRUE {}
 	| FALSE {}
 	;
 
-/* R -> < | > | >= | <= | != | == */
-relacional:	relacional SMT relacional { $$ = $1; }
-	| relacional GRT relacional { $$ = $1; }
-	| relacional GREQ relacional { $$ = $1; }
-	| relacional SMEQ relacional { $$ = $1; }
-	| relacional EQEQ relacional { $$ = $1; }
-	| relacional DIF relacional { $$ = $1; }
-	| expresion
-	;
+
 
 %%
 

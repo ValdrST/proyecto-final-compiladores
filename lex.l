@@ -29,7 +29,6 @@ real [Rr][Ee][Aa][Ll]
 dreal [Dd][Rr][Ee][Aa][Ll]
 car [Cc][Aa][Rr]
 sin [Ss][Ii][Nn]
-base {ent}|{real}|{dreal}|{car}|{sin}
 func [Ff][Uu][Nn][Cc]
 si [Ss][Ii]
 entonces [Ee][Nn][Tt][Oo][Nn][Cc][Ee][Ss]
@@ -53,7 +52,21 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 {func}  {yylval.line = yylineno;return FUNC;}
 
+{registro} {yylval.line = yylineno;return REGISTRO;}
+
+{inicio} {yylval.line = yylineno;return INICIO;}
+
 {si}    {yylval.line = yylineno;return SI;}
+
+{fin}    {yylval.line = yylineno;return FIN;}
+
+{car}    {yylval.line = yylineno;return CAR;}
+
+{ent}    {yylval.line = yylineno;return ENT;}
+
+{entonces}    {yylval.line = yylineno;return ENTONCES;}
+
+{sino}    {yylval.line = yylineno;return SINO;}
 
 {verdadero} {yylval.line = yylineno;return VERDADERO;}
 
@@ -61,11 +74,19 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 {mientras}  {yylval.line = yylineno;return MIENTRAS;}
 
-{id} { yylval.line = yylineno;yylval.sval = strdup(yytext);return ID;}
-
 {sin}   {yylval.line = yylineno;return SIN;}
 
-{car_def}   {yylval.line = yylineno;yylval.num.tipo = 4;yylval.car.cval = yytext;return CAR;}
+"oo"    {yylval.line = yylineno;return OO;}
+
+"yy"    {yylval.line = yylineno;return YY;}
+
+"no"    {yylval.line = yylineno;return NOT;}
+
+{id} { yylval.line = yylineno;yylval.sval = strdup(yytext);return ID;}
+
+
+
+{car_def}   {yylval.line = yylineno;yylval.car.tipo = 4;yylval.car.cval = yytext[1];return CARACTER;}
 
 {ent_def}   {yylval.line = yylineno;yylval.num.tipo = 1;yylval.num.ival = atoi(yytext);return NUM;}
 
@@ -84,25 +105,19 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "%"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MOD; }
 
-"(" {yylval.line = yylineno;return LPAR;}
+"(" {yylval.line = yylineno;return PRA;}
 
-")" {yylval.line = yylineno;return RPAR;}
+")" {yylval.line = yylineno;return PRC;}
 
 ":="    {yylval.line = yylineno;return ASIG;}
 
 "," {yylval.line = yylineno;return COMA;}
 
-";" {yylval.line = yylineno;return PC;}
-
 "[" {yylval.line = yylineno;return LCOR;}
 
-"]" {yylval.line = yylineno;return RCOR;}
+"]" {yylval.line = yylineno;return DCOR;}
 
-"oo"    {yylval.line = yylineno;return OO;}
 
-"yy"    {yylval.line = yylineno;return YY;}
-
-"no"    {yylval.line = yylineno;return NOT;}
 
 "<"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return SMT; }
 
@@ -118,17 +133,22 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 [ \n\t\r]			{}
 
-<comen1> {"*>" {BEGIN(INITIAL);}
-<<EOF>> {printf("Ha ocurrido un error léxico: el comentario no finaliza\n"); exit(1);}
-.|\n {/*Ignora todo lo que no es *>*/}
-}
+"/*"				{ BEGIN(com1); }
 
-<comen2> {. {/*Ignora todo lo que no sea un salto de linea*/}\n {BEGIN (INITIAL);}}
+<com1>\n    		{ yylval.line = yylineno; }
 
-<INITIAL> {"<*"  {BEGIN(com1);} "--"  {BEGIN(com2);}}
+<com1>[^*\n]*		{}
 
-"*>" {printf("Ha ocurrido un error léxico en la linea : %i\nEl caracter de error es %s\n", yylineno, yytext); }
+<com1>"*"+[^*/\n]*	{}
 
-. { printf("\n****Error lexico en la linea: %d\n", yylineno);}
+<com1>"*"+"/"		{ BEGIN(INITIAL); }
+
+"//"				{ BEGIN(com2); }
+
+<com2>[^*\n]*		{}
+
+<com2>\n  			{ BEGIN(INITIAL); }
+
+.					{ printf("\n****Error lexico en la linea: %d\n", yylineno);}
 
 %%

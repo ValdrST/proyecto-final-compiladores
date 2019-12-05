@@ -29,7 +29,7 @@ tipoBase *crearArqueTipo(bool is_struct, tipo* base_type){
     tipoBase* nuevo = malloc(sizeof(tipoBase));
     if(nuevo){
         nuevo->est = is_struct;
-        nuevo->t = base_type;
+        nuevo->t = *base_type;
     }else{
         printf("No hay memoria disponible\n");
     }
@@ -42,7 +42,7 @@ type *crearTipoArray(int id, char* nombre, tipoBase* tb, int size, int num_elem)
     if(tipo != NULL){
         tipo->id = id;
         strcpy(tipo->nombre, nombre);
-        tipo->tb = tb;
+        tipo->tb = *tb;
         tipo->tamBytes = size;
         tipo->numElem = num_elem;
         tipo->next = NULL;
@@ -59,7 +59,7 @@ type *crearTipoNativo(int id, char* nombre, tipoBase* tb, int size){
     if(tipo != NULL){
         tipo->id = id;
         strcpy(tipo->nombre, nombre);
-        tipo->tb = tb;
+        tipo->tb = *tb;
         tipo->tamBytes = size;
         tipo->numElem = 0;
         tipo->next = NULL;
@@ -81,19 +81,11 @@ typetab* crearTypeTab(){
 
 /* Borra la tabla de tipos, libera memoria */
 void borrarTypeTab(typetab *tt){
-    if(tt){
-    type* aux;
-    while(tt->root != NULL){
-      aux = tt->root;
-      tt->root = tt->root->next;
-      free(aux->tb->t);
-      free(aux->tb);
-      free(aux);
+    while(tt!=NULL){
+        borrarTypeTab(tt->next);
+        borrarType(tt->root);
+        free(tt);
     }
-    free(tt);
-  } else {
-    printf("No existe la tabla de tipos");
-  }
 }
 
 int buscarTipo(typetab* tt, char* nombre){
@@ -155,8 +147,8 @@ int insertarTipo(typetab *tt, type *t){
        int i;
        for(i=0;i<id; i++)
          aux = aux->next;
-       if(aux->tb)
-         return aux->tb;
+       if(&aux->tb)
+         return &aux->tb;
      }
      return NULL;
    }
@@ -218,8 +210,8 @@ void printTablaTipos(typetab *tt){
     if(tt != NULL){
         if(tt->root != NULL){
             do{
-                printf("id: %d nombre: %s numero elementos: %d tamaño: %d tipo base: %d\n",tt->root->id,getNombre(tt,tt->root->id),getNumElem(tt,tt->root->id),getTam(tt,tt->root->id),getTipoBase(tt,tt->root->id).t.type);
-                printTablaSimbolos(getTipoBase(tt,tt->root->id).t.estructura);
+                printf("id: %d nombre: %s numero elementos: %d tamaño: %d tipo base: %d\n",tt->root->id,getNombre(tt,tt->root->id),getNumElem(tt,tt->root->id),getTam(tt,tt->root->id),getTipoBase(tt,tt->root->id)->t.type);
+                printTablaSimbolos(getTipoBase(tt,tt->root->id)->t.estructura);
                 t_next = tt->root->next;
             }while(t_next!=NULL);
         }else

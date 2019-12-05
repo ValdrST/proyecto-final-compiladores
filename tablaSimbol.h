@@ -40,7 +40,7 @@ param* crearParam(int tipo);
 listParam* crearLP();
 
 /* Agrega al final de la lista el parametro e incrementa num */
-void add(listParam* lp, int tipo);
+void add_tipo(listParam* lp, int tipo);
 
 /* Borra toda la lista, libera la memoria */
 void borrarListParam(listParam* lp);

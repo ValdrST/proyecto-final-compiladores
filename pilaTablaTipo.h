@@ -1,5 +1,5 @@
 #ifndef PILATABLATIPO_H_INCLUDED
-
+#include "tablaTipo.h"
 typedef struct _typestack typestack;
 
 struct _typestack

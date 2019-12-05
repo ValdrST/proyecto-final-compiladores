@@ -41,12 +41,6 @@ typedef struct _sentence{
     int first;    
 } sentence;
 
-/* Estructura para el manejo de tipos. */
-typedef struct _type{
-    int type;
-    int dim;
-} type;
-
 /* Estructura para el manejo de parametros. */
 typedef struct _args_list{
     int* args;
