@@ -1,6 +1,4 @@
 #ifndef ATTRIBS_H
-#define ATTRIBS_H
-
 #include "intermediate_code.h"
 
 /* Estructura para el manejo de expresiones. */
@@ -30,6 +28,16 @@ typedef struct _car{
     char cval;
 } car;
 
+typedef struct _ttype{
+    int tipo;
+    int dim;
+}ttype;
+
+typedef struct _stack_cad{
+    char cval[100];
+    struct _stack_cad *next;
+}stack_cad;
+
 typedef struct _stack_dir{
     int dir[100];
     int numDirs;
@@ -47,4 +55,7 @@ typedef struct _args_list{
     int total;
 } args_list;
 
+stack_cad *crearStackCad();
+void addStackCad(stack_cad sc,char* cad);
+#define ATTRIBS_H
 #endif

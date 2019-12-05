@@ -25,7 +25,7 @@
 	symstack *StackTS;
 
 	typestack *StackTT;
-	type base;
+	ttype base;
 	typetab *tt_global;
 	symtab *ts_global;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
@@ -76,7 +76,7 @@
 %union{
 	int line;
 	char* sval;
-	tipo tval;
+	ttype tval;
 	expresion eval;
 	num num;
 	car car;
@@ -158,10 +158,6 @@ programa:{
 		insertarTypeTab(StackTT,tt);
 		insertarSymTab(StackTS,ts);
 	} declaraciones funciones {
-		if(busca_main() == -1){
-			yyerror("Falta definir funcion principal");
-			exit(0);
-		}
 		//print_symbols_table(); 
 		//print_types_table(); 
 		//print_code(); 
@@ -171,29 +167,13 @@ programa:{
 
 /* declaraciones -> tipo lista_var declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
-declaraciones: tipo lista_var declaraciones { $$.type = $1.type;}
-	| tipo_registro lista_var declaraciones { $$.type = $1.type;}
+declaraciones: tipo lista_var declaraciones {}
+	| tipo_registro lista_var declaraciones {}
 	| {}
 	;
 
 /* tipo_registro -> registro inicio declaraciones fin */
-tipo_registro: REGISTRO INICIO declaraciones FIN {
-	typetab *tt = crearTypeTab();
-	symtab *ts = crearSymTab();
-	stackDir.dir[stackDir.numDirs] = dir;
-	stackDir.numDirs++;
-	dir = 0;
-	insertarTypeTab(StackTT,tt);
-	insertarSymTab(StackTS,ts);
-	stackDir.numDirs--;
-	dir = stackDir.dir[stackDir.numDirs];
-	typetab tt1 = sacarTypeTab(StackTT);
-	tt_global = getCimaType(StackTT);
-	ts1 = sacarSymTab(StackTS);
-	stackDir.numDirs--;
-	dir = stackDir.dir[stackDir.numDirs];
-	$$.type = insertarTipo(getCimaType(StackTT),crearTipo(5,"registro",0, 0));
-	}
+tipo_registro: REGISTRO INICIO declaraciones FIN;
 
 tipo: base tipo_arreglo{
 	base = $1;
@@ -202,106 +182,29 @@ tipo: base tipo_arreglo{
 
 
 /* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-base: ENT { $$.type = 1; $$.dim = 2; }
-	| REAL { $$.type = 2; $$.dim = 4; }
-	| DREAL { $$.type = 3; $$.dim = 8; }
-	| CAR { $$.type = 4; $$.dim = 1; }
-	| SIN { $$.type = 0; $$.dim = 0; }
+base: ENT {}
+	| REAL {}
+	| DREAL {}
+	| CAR {}
+	| SIN {}
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA NUM CTC tipo_arreglo {
-		type t;
-		if($2.type == 1 && $2.ival > 0){
-			t.type = "array";
-			t.dim = $2.ival;
-			t.base = $4.type;
-			$$.type = insert_type(t);
-			$$.dim = $4.dim * $2.ival;
-		} else { yyerror("La dimension del arreglo debe ser entera"); exit(0); }
-	}
-	| {
-		$$ = base;
-	}
+tipo_arreglo:	CTA NUM CTC tipo_arreglo 
+	| {}
 	;
 
 /* lista_var -> lista_var, id tipo_arreglo | id tipo_arreglo */
-lista_var: 	lista_var COMA ID { 
-		if(buscar(getCima(StackTS),$3) == -1){
-			symbol sym = crearSymbol();
-			sym->id = $3;
-			sym->dir = dir;
-			sym->tipo = $3.tipo;
-			strcmp(ym->tipo_var,"var");
-			dir += $3.dim;
-		} else{ yyerror("Identificadores duplicados en el mismo alcance"); exit(0); }
-	}
-	| ID {
-		if(buscar(getCima(StackTS),$1) == -1){
-			symbol sym;
-			sym.id = $1;
-			sym.dir = dir;
-			sym.type = $1.tipo;
-			sym.var = "var";
-			sym.num_args = 0;
-			sym.list_types = malloc(sizeof(int));
-			if(scope > 0)
-				insert_symbol(sym);
-			else
-				insert_global_symbol(sym);
-			dir += $1.dim;
-		} else{ yyerror("Identificadores duplicados en el mismo alcance"); exit(0); }
-	}
+lista_var: 	lista_var COMA ID 
+	| ID
 	;
 
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones: FUNC tipo ID {
-		num_args = 0;
-		list_args = malloc(sizeof(int) * 100);
-		create_symbols_table();
-		create_types_table();
-		scope++;
-		dir_aux = dir;
-		dir = 0;
-		has_reg = 0;
-		if($2.type == 0){
-			yyerror("No se pueden declarar variables sin dentro de funciones"); exit(0);
-		}
-	}
-	PRA argumentos PRC INICIO declaraciones sentencias FIN {
-		if(existe_globalmente($3) == -1){
-			if(has_reg == 1){
-				yyerror("No se pueden declarar registros dentro de funciones"); exit(0);
-			}
-			if($2.type != 1 && $2.type != 2 && $2.type != 3 && $2.type != 4 && $2.type != 0){
-				yyerror("Las funciones no pueden devolver registros"); exit(0);
-			}
-			//if(strcpm($2.type, $10.return) == 0){
-				ttype t;
-				char* tipo = malloc(sizeof(char) * 10);
-				sprintf(tipo, "%d", $2.type);
-				t.type = tipo;
-				t.base = -1;
-				t.dim = 0;
-
-				symbol sym;
-				sym.id = $3;
-				sym.dir = -1;
-				sym.type = $2.type;
-				sym.var = "fun";
-				sym.num_args = $6.total;
-				sym.list_types = $6.args;
-				insert_global_symbol(sym);
-			//} else { yyerror("El valor de retorno no coincide"); exit(0); }
-		} else { yyerror("Funcion declarada anteriormente"); exit(0); }
-		print_symbols_table_2(SYM_STACK.total, $3);
-		scope--;
-		dir = dir_aux;
-		delete_types_table();
-	}
-	funciones
-	| {}
+funciones: FUNC tipo ID PRA argumentos PRC INICIO 
+	declaraciones sentencias 
+	FIN 
+	funciones | {}
 	;
 
 /* A -> G | epsilon */
@@ -398,31 +301,13 @@ param_arr: ID LCOR DCOR
 	| param_arr LCOR DCOR
 
 /* variable -> id | parte_arreglo | id . id */
-variable: ID {
-		if(existe_globalmente($1) == -1){
-			yyerror("Variable no declarada");
-			exit(0);
-			$$ = $1;
-		}	
-	}
-	| parte_arreglo
+variable: ID arreglo
 	| ID PT ID 
 	;
 
 
-/* parte_arreglo -> id [ expresion ] | parte_arreglo [ expresion ] */
-parte_arreglo:	ID LCOR expresion DCOR {
-		if(existe_globalmente($1) != -1){
-			int t = get_type($1);
-			if(t == 1 || t == 2 || t == 3 || t ==4){
-				yyerror("La variable no es un arreglo");
-				exit(0);
-			}
-		} else {
-			yyerror("Variable no declarada");
-			exit(0);
-		}
-	} parte_arreglo  
+/* parte_arreglo -> id [ expresion ] arreglo | epsilon */
+arreglo: ID LCOR expresion DCOR arreglo  
 	| {}
 	;
 
@@ -457,33 +342,6 @@ expresion_booleana: expresion_booleana OO expresion_booleana { $$ = or($1, $3); 
 
 %%
 
-/* Funcion encargada de iniciar las variables, la tabla de simbolos,  
-   la pila de simbolos y la pila de tipos. */
-void init(){
-	dir = 0;
-	temporales = 0;
-	num_args = 0;
-	scope = 0;
-	list_args = malloc(sizeof(int) * 100);
-	init_symbols();
-	init_types();
-}
-
-/* Funcion encargada de buscar que exista la funcion principal. */
-int busca_main(){
-	return search_global("main");
-}
-
-/* Funcion encarda de decirnos si un identificador ya fue declarado en
-   el mismo alcance. */
-int existe_en_alcance(char* id){
-	return search_scope(id);
-}
-
-/* Funcion encargada de decirnos si un identificador ya fue declarado globalmente. */
-int existe_globalmente(char* id){
-	return search_global(id);
-}
 
 /* Funcion encargada de revisar los tipos, si son correctos toma el de
    mayor rango, e.o.c manda un mensaje de error. 
@@ -544,14 +402,6 @@ expresion numero_entero(int num){
 	return new_exp;
 }
 
-expresion funcion_e(char* f){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%d", get_dir(f));
-	new_exp.type = get_type(f);
-	new_exp.first = -1;
-	return new_exp;
-}
-
 /* Funcion encargada de tomar un numero flotante y guardarlo como expresion. */
 expresion numero_flotante(float num){
 	expresion new_exp;
@@ -575,28 +425,6 @@ expresion caracter(char c){
 	expresion new_exp;
 	sprintf(new_exp.dir, "%c", c);
 	new_exp.type = 4;
-	new_exp.first = -1;
-	return new_exp;
-}
-
-/* Funcion de guardar cadenas */
-expresion cadena_s(char* c){
-	ttype t;
-	expresion new_exp;
-	sprintf(new_exp.dir, "%s", c);
-	t.type = "cad";
-	t.dim = strlen(c);
-	t.base = 4;
-	new_exp.type = insert_type(t);;
-	new_exp.first = -1;
-	return new_exp;
-}
-
-/* Funcion para guardar variables */
-expresion variable_v(char* c){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%d", get_dir(c));
-	new_exp.type =  get_type(c);
 	new_exp.first = -1;
 	return new_exp;
 }

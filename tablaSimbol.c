@@ -182,11 +182,11 @@ int getTipo(symtab* st, char* id){
 /* Retorna el tipo de variable de un id
  * En caso no encontrarlo retorna -1
  */
-int getTipoVar(symtab* st, char* id){
+char* getTipoVar(symtab* st, char* id){
     int posicion = buscar(st, id);
     if (posicion == -1){
         printf("Tipo de variable no encontrado\n");
-        return -1;
+        return NULL;
     }else{
         symbol* simbolo_actual = st->root;
         while(posicion != 1){
@@ -249,6 +249,17 @@ int getNumParam(symtab *st, char *id){
         }
         return (simbolo_actual->params->num);
     }
+}
+
+const char* getParams(param *p){
+    char paramS[200];
+    while(p){
+        char tipo[10];
+        sprintf(tipo, " %d", p->tipo);
+        strcat(paramS,tipo);
+        p = p->next;
+    }
+    return paramS;
 }
 // Imprime la tabla de simbolos
 void printTablaSimbolos(symtab *st){

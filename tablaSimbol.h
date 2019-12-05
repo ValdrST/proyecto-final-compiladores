@@ -78,7 +78,7 @@ int getTipo(symtab* st, char* id);
 /* Retorna el tipo de Variable de un id
  * En caso de no encontrarlo retorna -1
  */
-int getTipoVar(symtab* st, char* id);
+char* getTipoVar(symtab* st, char* id);
 
 /* Retorna la direccion de un id
  * En caso de no encontrarlo retorna -1
@@ -94,6 +94,8 @@ listParam* getListParam(symtab* st, char* id);
  * En caso de no encontrarlo retorna -1
  */
 int getNumParam(symtab *st, char *id);
+
+const char* getParams(param *p);
 
 /* Imprime toda la tabla de simbolos,
  * si contiene parametros los imprime tambien
