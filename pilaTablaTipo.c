@@ -3,58 +3,65 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Se crea una nueva pila de tablas de tipos y se inicializa
-typestack *crearTypeStack() {
-  typestack *ts = malloc(sizeof(typestack));
-  ts->num = 0;
-  ts->root = NULL;
-  return ts;
-}
-// Elimina la pila y limpia la memoria elemento a elemento
-void borrarTypeStack(typestack *ts) {
-  if (ts != NULL) {
-    borrarTypeTab(ts->root);
-    free(ts);
-  }
-}
-// Inserta una tabla de simbolos y aumenta el contador
-void insertarTypeTab(typetack *ts, typetab *t) {
-  if (ts->root == NULL) {
-    ts->root = t;
-  } else {
-    typetab *i = ts->root;
-    while (i->next) {
-      i = i->next;
-    }
-    i->next = t;
-  }
-  ts->num++;
-}
-// Se obtiene el elemento que esta en la cima de la tabla de simbolo
-typetab *getCimaType(typetack *ts) { return ts->root; }
 
-// Hace operacion pop en la pila
-typetab *sacarTypeTab(typestack *ts) {
-  typetab *ts_aux, *ts_next, *tt;
-  tt = (typetab *)malloc(sizeof(typetab));
-  ts_aux = ts->root;
-  while (ts_aux != NULL) {
-    ts_next = ts_aux->next;
-    if (ts_next == NULL) {
-      *tt = (*ts_aux);
-      free(ts_aux);
-      return tt;
+typestack *crearTypeStack(){
+    typestack *nuevaPTT = malloc(sizeof(typestack));
+    if(nuevaPTT){
+        nuevaPTT->root = NULL;
+        nuevaPTT->num = 0;
+    }else{
+        printf("No hay memoria disponible");
     }
-    ts_aux = ts_next;
-  }
-  return NULL;
+    return nuevaPTT;
 }
 
-void print_types_table(typestack *STT) {
-  typestack global = STT->root;
-  printf("\n*************** TABLA DE TIPOS GLOBAL ***************\n");
-  printf("pos\ttipo\tdim\tbase\n");
-  for (int i = 0; i <= global->num; i++)
-    printf("%d\t%s\t%d\t%d\n", i, (global->root + i)->type,
-           (global->root + i)->dim, (global->root + i)->base);
+void borrarTypeStack(typestack *ptt){
+    if(ptt){
+        typetab* aux;
+        while(ptt->root){
+          aux = ptt->root;
+          ptt->root = ptt->root->next;
+          free(aux);
+        }
+        free(ptt);
+  }else{
+    printf("No existe la pila de tabla de tipos\n");
+  }
+}
+
+typetab* getCimaType(typestack *ptt){
+    typetab *aux = ptt->root;
+    return aux;
+}
+
+void insertarTypeTab(typestack *ptt, typetab *type_tab){
+    if(ptt){    //Si existe la pila
+        if (ptt->root == NULL){     //La pila esta vacia
+            ptt->root = type_tab;
+        }else{                      //La pila no esta vacia
+            typetab *aux = getCimaType(ptt);
+            type_tab->next = aux;
+            ptt->root = type_tab;
+        }
+        ptt->num++;
+    }else{
+        printf("La pila de tabla de simbolos no existe");
+    }
+}
+
+typetab* sacarTypeTab(typestack *ptt){
+    if(ptt){    //Si existe la pila
+        if (ptt->root == NULL){     //La pila esta vacia
+            printf("ERROR: La pila de tabla de simbolos esta vacia");
+        }else{                      //La pila no esta vacia
+            typetab *cima = getCimaType(ptt);
+            //typetab *aux = cima;
+            ptt->root = cima->next;
+            ptt->num--;
+            //free(aux);
+            return(cima);
+        }
+    }else{
+        printf("La pila de tabla de simbolos no existe");
+    }
 }

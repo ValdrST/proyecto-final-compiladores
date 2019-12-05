@@ -3,185 +3,252 @@
 #include <string.h>
 #include "tablaSimbol.h"
 
-// Se crea un parametro
-param *crearParam(int tipo){
-    param *p = (param*)malloc(sizeof(param));
-    p->tipo = tipo;
-    p->next = NULL;
-    return p;
-}
-// Se borra y libera la memoria elemento a elemento del parametro
-void borraParam(param *p){
-    while(p!=NULL){
-        borraParam(p->next);
-        free(p);
+param* crearParam(int tipo){
+    param* parametro= malloc(sizeof(param));
+    if(parametro != NULL){
+        parametro->tipo = tipo;
+        parametro->next = NULL;
     }
+    else{
+        printf("No hay memoria disponible\n");  //ERROR
+    }
+    return parametro;
 }
 
-// Se crea una lista de parametros
+/* Retorna un apuntador a una variable listParam */
 listParam *crearLP(){
-    listParam *lp = (listParam*)malloc(sizeof(listParam));
-    lp->num = 0;
-    return lp;
+    listParam* lista = malloc(sizeof(listParam));
+    if(lista != NULL){
+        lista->root = NULL;
+        lista->num = 0;
+    }
+    else{
+        printf("No hay memoria disponible\n");  //ERROR
+    }
+    return lista;
 }
 
-// Se añade un parametro a la lista de parametros
-void add(listParam lp, int tipo){
-    param *p, *p_next;
-    p = lp.root;
-    while(p != NULL){
-        p_next = p->next;
-        if(p_next == NULL){
-            p->next = crearParam(tipo);
+/* Agrega al final de la lista el parametro e incrementa num */
+void add(listParam* lp, int tipo){
+    param* parametro = crearParam(tipo);
+    if(lp->root == NULL){
+        lp->root = parametro;
+    }else{
+        param* puntero = lp->root;
+        while(puntero->next){
+            puntero = puntero->next;
         }
-        p = p_next->next;
-        
+        puntero->next = parametro;
     }
-    lp.num++;
+    lp->num++;
 }
- 
-//Se borra  la lista de parametros y se libera la memoria
-void borrarListParam(listParam *lp){
-    borraParam(lp->root);
-    free(lp);
+/* Borra toda la lista, libera la memoria */
+void borrarListParam(listParam* lp){
+    if(lp){
+        param* aux;
+        while(lp->root){
+          aux = lp->root;
+          lp->root = lp->root->next;
+          free(aux);
+        }
+        free(lp);
+  }else{
+    printf("No existe la lista de parametros\n");
+  }
 }
-// se obtiene el numero de parametros de la lista
+
+/* Cuenta el numero de parametros en la linea */
 int getNumListParam(listParam *lp){
     return lp->num;
 }
-// Se crea e inicializa un simbolo nuevo
-symbol *crearSymbol(){
-    symbol *s = (symbol*)malloc(sizeof(symbol));
-    s->next=NULL;
-    s->params=crearLP();
-    return s;
-}
-// Se elimina y se libera la memoria del simbolo de forma recursiva
-void borrarSymbol(symbol *s){
-    while(s!=NULL){
-        borrarSymbol(s->next);
-        free(s);
+
+/* Retorna un apuntador a una variable symbol */
+symbol* crearSymbol(char *id, int tipo, int dir, int tipoVar){
+    symbol* sym_tmp= malloc(sizeof(symbol));
+    if(sym_tmp != NULL)
+    {
+        strcpy(sym_tmp->id, id);
+        sym_tmp->tipo = tipo;
+        sym_tmp->dir = dir;
+        sym_tmp->tipoVar = tipoVar;
+        sym_tmp->params = crearLP();
+        sym_tmp->next = NULL;
     }
+    else
+    {
+        printf("No hay memoria disponible\n");  //ERROR
+    }
+ return sym_tmp;
+
 }
-// Crea e inicializa una tabla de simbolos
-symtab *crearSymTab(){
-    symtab *st = (symtab*)malloc(sizeof(symtab));
-    st->next=NULL;
-    st->num = 0;
-    st->root = NULL;
-    return st;
+
+/* Retorna un apuntador a una variable symtab,
+ * inicia contador en 0
+ */
+symtab* crearSymTab(){
+  symtab* st = malloc(sizeof(symtab));
+  st->root = NULL;
+  st->num = 0;
+  st->next = NULL;
+  return st;
 }
-// Borra la tabla de simbolos y libera meoria de forma recursiva
-void borrarSymTab(symtab *st){
-    while(st!=NULL){
-        borrarSymTab(st->next);
-        borrarSymbol(st->root);
+
+/* Borra toda la lista, libera la memoria */
+void borrarSymTab(symtab* st){
+    if(st){
+        symbol* aux;
+        while(st->root){
+          aux = st->root;
+          st->root = st->root->next;
+          borrarListParam(aux->params);
+          free(aux);
+        }
         free(st);
     }
+    else{
+        printf("No existe la tabla de simbolos\n");
+    }
 }
-// Inserta simbolo en tabla de simbolos
-int insertar(symtab *st, symbol *sym){
-    symbol *s, *s_next;
-    s = st->root;
-    while(s != NULL){
-        s_next = s->next;
-        if(s_next == NULL){
-            s->next = sym;
-            sym->next = NULL;
+
+/* Inserta al final de la lista, en caso de insertar incrementa num
+ * y retorna la posicion donde inserto. En caso contrario retorna -1
+*/
+int insertar(symtab* st, symbol* sym){
+    if(st){
+        int posicion = buscar(st, sym->id);
+        if(posicion == -1){
             st->num++;
-            return st->num;
+            if(st->root == NULL){
+                st->root = sym; //es el primer simbolo
+            }
+            else{
+                symbol* simbolo_actual = st->root;
+                while(simbolo_actual->next != NULL){
+                    simbolo_actual = simbolo_actual->next;
+                }
+                simbolo_actual->next = sym;
+            }
+            return (st->num);
         }
-        s = s_next;
-    }
-    return -1;
-}
-// Retorna el id si es que existe de la tabla de simbolos si no retorna -1
-int buscar(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    int i = 0;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return i;
+        else{
+            printf("Error: el simbolo ya existe en la posicion: %i\n", posicion);
+            return -1;
         }
-        s = s->next;
-        i++;
-    }
-    return -1;
-}
-// obtiene el tipo de un id en la tabla si no existe retorna -1
-int getTipo(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return s->tipo;
-        }
-        s = s->next;
-    }
-    return -1;
-}
-// Obtiene el tipo var de la tabla de simbolos si no existe retorna -1
-char* getTipoVar(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return s->tipoVar;
-        }
-        s = s->next;
-    }
-    return -1;
-}
-// Obtiene la direccion de una tabla de simbolos si no existe retorna -1
-int getDir(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return s->dir;
-        }
-        s = s->next;
-    }
-    return -1;
-}
-// Obtiene la lista de parametros de una tabla de simbolos si no existe retorna NULL
-listParam *getListParam(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return s->params;
-        }
-        s = s->next;
-    }
-    return NULL;
+	}else
+        printf("Error: la tabla de simbolos no existe\n");
 }
 
+/* Busca en la tabla de simbolos mediante el id
+ * En caso de encontrar el id retorna la posicion
+ * En caso contrario retorna -1
+ */
+int buscar(symtab* st, char* id){
+    if(st){
+        int posicion = 0;
+        if(st->root == NULL){
+            return -1; //La tabla esta vacia
+        }
+        symbol* simbolo_actual = st->root;
+        while (simbolo_actual != NULL){
+            posicion++;
+            if (strcmp(id, simbolo_actual->id) == 0)
+                return posicion;
+            else
+                simbolo_actual = simbolo_actual->next;
+        }
+        return -1;	//El simbolo no existe
+  	}else
+  		printf("Error: la tabla de simbolos no existe\n");
+}
+
+/* Retorna el tipo de dato de un id
+ * En caso no encontrarlo retorna -1
+ */
+int getTipo(symtab* st, char* id){
+    int posicion = buscar(st, id);
+    if (posicion == -1){
+        printf("Tipo de dato no encontrado\n");
+        return -1;
+    }else{
+        symbol* simbolo_actual = st->root;
+        while(posicion != 1){
+            posicion--;
+            simbolo_actual = simbolo_actual->next;
+        }
+        return (simbolo_actual->tipo);
+    }
+}
+
+/* Retorna el tipo de variable de un id
+ * En caso no encontrarlo retorna -1
+ */
+int getTipoVar(symtab* st, char* id){
+    int posicion = buscar(st, id);
+    if (posicion == -1){
+        printf("Tipo de variable no encontrado\n");
+        return -1;
+    }else{
+        symbol* simbolo_actual = st->root;
+        while(posicion != 1){
+            posicion--;
+            simbolo_actual = simbolo_actual->next;
+        }
+        return (simbolo_actual->tipoVar);
+    }
+}
+
+/* Retorna la direccion
+ * En caso de no encontrarlo retorna -1
+ */
+int getDir(symtab* st, char* id){
+    int posicion = buscar(st, id);
+    if (posicion == -1){
+        printf("Direccion no encontrada\n");
+        return -1;
+    }else{
+        symbol* simbolo_actual = st->root;
+        while(posicion != 1){
+            posicion--;
+            simbolo_actual = simbolo_actual->next;
+        }
+        return (simbolo_actual->dir);
+    }
+}
+
+/* Retorna la lista de parametros de un id
+ * En caso de no encontrarlo retorna NULL
+ */
+listParam* getListParam(symtab* st, char* id){
+    int posicion = buscar(st, id);
+    if (posicion == -1){
+        printf("Lista de parametros no encontrada\n");
+        return NULL;
+    }else{
+        symbol* simbolo_actual = st->root;
+        while(posicion != 1){
+            posicion--;
+            simbolo_actual = simbolo_actual->next;
+        }
+        return (simbolo_actual->params);
+    }
+}
+
+/* Retorna el numero de parametros de un id
+ * En caso de no encontrarlo retorna -1
+ */
 int getNumParam(symtab *st, char *id){
-    symbol *s;
-    s = st->root;
-    while(s != NULL){
-        if(strcmp(s->id,id)==0){
-            return s->params->num;
+    int posicion = buscar(st, id);
+    if (posicion == -1){
+        printf("Numero de parametros no encontrados\n");
+        return -1;
+    }else{
+        symbol* simbolo_actual = st->root;
+        while(posicion != 1){
+            posicion--;
+            simbolo_actual = simbolo_actual->next;
         }
-        s = s->next;
+        return (simbolo_actual->params->num);
     }
-    return -1;
-}
-
-// Retorna una cadena con los parametros 
-char* getParams(param *p){
-    param *p_next;
-    char* param_s = "";
-    do{
-        char* c = malloc(sizeof(char)*100);
-        strcat(param_s," ");
-        sprintf(c, "%d", p->tipo);
-        strcat(param_s,c);
-        p_next = p->next;
-    }while(p_next != NULL);
-    return param_s;
 }
 // Imprime la tabla de simbolos
 void printTablaSimbolos(symtab *st){

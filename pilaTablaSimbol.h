@@ -9,9 +9,9 @@ struct _symstack{
 };
 
 symstack *crearSymStack();
-void borrarSymStack(symstack *ss);
-void insertarSymTab(symstack *ss, symtab *sym);
-symtab* getCima(symstack *ss);
-symtab* sacarSymTab(symstack *ss);
+void borrarSymStack(symstack *pts);
+void insertarSymTab(symstack *pts, symtab *sym_tab);
+symtab* getCimaSym(symstack *pts);
+symtab* sacarSymTab(symstack *pts);
 #define PILATABLASIMBOL_H_INCLUDED
 #endif

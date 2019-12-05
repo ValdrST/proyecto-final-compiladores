@@ -3,80 +3,64 @@
 #include <string.h>
 #include "tablaSimbol.h"
 #include "pilaTablaSimbol.h"
-
-/**
- * Crea y regresa un apuntador a una pila de símbolos.
- */
 symstack *crearSymStack(){
-  symstack* nPila = (symstack*)malloc(sizeof(symstack));
-  nPila->num = 0;
-  return nPila;
-}
-
-/**
- * Libera el espacio del apuntador.
- */
-void borrarSymStack(symstack *ss){
-  /*
-  if(ss->root != NULL)
-    borrarSymbol(ss->root);
-  */
-  free(ss);
-}
-
-/**
- * Inserta un símbolo al tope de la pila.
- */
-void insertarSymTab(symstack *ss, symtab *sym){
-  if(ss->num == 0){
-    ss->root = sym;
-  } else{
-    symtab *aux = ss->root;
-    while(aux->next != NULL)
-      aux = aux->next;
-    aux->next = sym;
-  }
-  ss->num++;
-}
-
-/**
- * Regresa un apuntador al símbolo del tope de la pila.
- */
-symtab* getCima(symstack *ss){
-  if(ss->num == 0)
-    return NULL;
-  symtab *aux = ss->root;
-  while(aux->next != NULL)
-    aux = aux->next;
-  return aux;
-}
-
-/**
- * Saca (y regresa) el tope de la pila de símbolos.
- */
-symtab* sacarSymTab(symstack *ss){
-  if(ss->num == 0)
-    return NULL;
-
-  symtab *aux = ss->root;
-  ss->num = ss->num - 1;
-
-  symtab *cima;
-
-  // Caso especial para la raíz
-  if(aux->next == NULL){
-    ss->root = NULL;
-    return NULL;
-  }
-
-  // Los demás casos se tratan igual.
-  while(aux->next != NULL){
-    if(aux->next->next == NULL){ //El que verificamos que es distinto de vacío es ya la cima
-      cima = aux->next;
-      aux->next = NULL; //Quitamos su referencia.
-      return cima;
+    symstack *nuevaPTS = malloc(sizeof(symstack));
+    if(nuevaPTS){
+        nuevaPTS->root = NULL;
+        nuevaPTS->num = 0;
+    }else{
+        printf("No hay memoria disponible");
     }
-    aux = aux->next;
+    return nuevaPTS;
+}
+
+void borrarSymStack(symstack *pts){
+    if(pts){
+        symtab* aux;
+        while(pts->root){
+          aux = pts->root;
+          pts->root = pts->root->next;
+          free(aux);
+        }
+        free(pts);
+  }else{
+    printf("No existe la pila de tabla de simbolos\n");
   }
 }
 
+symtab* getCimaSym(symstack *pts){
+    symtab *aux = pts->root;
+    return aux;
+}
+
+void insertarSymTab(symstack *pts, symtab *sym_tab){
+    if(pts){    //Si existe la pila
+        if (pts->root == NULL){     //La pila esta vacia
+            pts->root = sym_tab;
+        }else{                      //La pila no esta vacia
+            symtab *aux = getCimaSym(pts);
+            sym_tab->next = aux;
+            pts->root = sym_tab;
+        }
+        pts->num++;
+    }else{
+        printf("La pila de tabla de simbolos no existe");
+    }
+}
+
+symtab* sacarSymTab(symstack *pts){
+    if(pts){    //Si existe la pila
+        if (pts->root == NULL){     //La pila esta vacia
+            printf("ERROR: La pila de tabla de simbolos esta vacia");
+        }else{                      //La pila no esta vacia
+            symtab *cima = getCimaSym(pts);
+            //symtab *aux = cima;
+            pts->root = cima->next;
+            pts->num--;
+            //free(aux);
+            return cima;
+        }
+    }else{
+        printf("La pila de tabla de simbolos no existe");
+    }
+}

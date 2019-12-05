@@ -19,11 +19,16 @@ typedef struct _condition{
 
 /* Estructura para el manejo de valores numericos. */
 typedef struct _num{
-    int type;
+    int tipo;
     int ival;
     double dval;
     float fval;
 } num;
+
+typedef struct _car{
+    int tipo;
+    char cval;
+} car;
 
 typedef struct _stack_dir{
     int dir[100];

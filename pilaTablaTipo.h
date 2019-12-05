@@ -1,22 +1,18 @@
 #ifndef PILATABLATIPO_H_INCLUDED
 
-typedef struct _typetack typetack;
+typedef struct _typestack typestack;
 
-struct _typetack
+struct _typestack
 {
    typetab *root;
    int num;
 };
 
-typetack *crearTypeStack();
-
-void borrarTypeStack(typetack *st);
-
-void insertarTypeTab(typetack *ts, typetab *sym);
-
-typetab* getCimaType(typetack *ts);
-
-typetab* sacarTypeTab(typetack *ts);
+typestack *crearTypeStack();
+void borrarTypeStack(typestack *ptt);
+void insertarTypeTab(typestack *ptt, typetab *type_tab);
+typetab* getCimaType(typestack *ptt);
+typetab* sacarTypeTab(typestack *ptt);
 #define PILATABLATIPO_H_INCLUDED
 #endif
 

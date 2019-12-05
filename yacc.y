@@ -94,7 +94,6 @@
 %token INT
 %token FLOAT
 %token DOUBLE
-%token CHAR
 %token VOID
 %token STRUCT
 %token LLA
@@ -114,7 +113,7 @@
 %token CASE
 %token DEFAULT
 %token<sval> CADENA
-%token<car> CARACTER
+%token<car> CAR
 %token TRUE
 %token FALSE
 %token THEN
@@ -205,7 +204,7 @@ tipo: base tipo_arreglo{
 base: INT { $$.type = 1; $$.dim = 2; }
 	| FLOAT { $$.type = 2; $$.dim = 4; }
 	| DOUBLE { $$.type = 3; $$.dim = 8; }
-	| CHAR { $$.type = 4; $$.dim = 1; }
+	| CAR { $$.type = 4; $$.dim = 1; }
 	| VOID { $$.type = 0; $$.dim = 0; }
 
 

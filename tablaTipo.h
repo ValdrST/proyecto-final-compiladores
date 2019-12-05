@@ -31,15 +31,46 @@ int num;
 typetab *next;
 };
 
-typetab *crearTypeTab();
-type *crearTipo(int id,char* nombre,int tam, int numElem);
+/* Retorna un apuntador a una variable type */
+tipo *crearTipoPrimitivo(int id);
+tipo *crearTipoStruct(symtab* estructura);
+tipoBase *crearArqueTipo(bool is_struct, tipo* base_type);
+type *crearTipoArray(int id, char* nombre, tipoBase* tb, int size, int num_elem);
+type *crearTipoNativo(int id, char* nombre, tipoBase* tb, int size);
+
+/* Borra type, libera memoria */
 void borrarType(type *t);
-void printTablaTipos(typetab *tt);
+
+/*Crea tabla de tipos*/
+typetab* crearTypeTab();
+
+/* Borra la tabla de tipos, libera memoria */
 void borrarTypeTab(typetab *tt);
+
+/* Inserta al final de la lista en caso de insertar incrementa num
+ * Retorna la posicion donde inserto en caso contrario retorna -1
+ */
 int insertarTipo(typetab *tt, type *t);
-tipoBase getTipoBase(typetab *tt , int id);
-int getTam(typetab *tt, int id);
-int getNumElem(typetab *tt, int id);
-char* getNombre(typetab *tt, int id);
+
+/* Retorna el tipo base de un tipo
+ * En caso de no encontrarlo retorna NULL
+ */
+tipoBase* getTipoBase(typetab *tt, int id);
+
+/* Retorna el numero de bytes de in tipo
+ * En caso de no encontrarlo retorna -1
+ */
+int getTam(typetab* tt, int id);
+
+/* Retorna el numero de elementos de un tipo
+ * En caso de no encontrarlo retorna -1
+ */
+int getNumElem(typetab* tt, int id);
+
+/* Retorna el nombre de un tipo
+ * En caso de no encontrarlo retorna NULL
+ */
+char* getNombre(typetab* tt, int id);
+void imprimirTablaType(typetab *tt);
 #define TABLATIPO_H_INCLUDED
 #endif

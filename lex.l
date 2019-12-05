@@ -10,12 +10,39 @@
 %option noyywrap
 %option yylineno
 
-id [a-zA-Z][a-zA-Z0-9_]*
-int	[0-9]+
-double [0-9]+("."[0-9]+)?
-float [0-9]+("."[0-9]+)?[fF]
-char '[^\']'
-cadena \"[^\"]*\"
+digito [0-9]
+ent_def {digito}+
+exp [Ee][+-]?{ent}
+real_def ({ent}.?{ent}{exp}|{ent}?.{ent}{exp}?|{ent}.{ent}?{exp}?)[Ff]
+dreal_def {ent}.?{ent}{exp}|{ent}?.{ent}{exp}?|{ent}.{ent}?{exp}?
+letra [a-zA-Z]
+id (_|{letra})((_|{letra}|{digito})){0,31}
+
+car_def '([^'])'
+cadena \"([^"]*)\"
+
+registro [Rr][Ee][Gg][Ii][Ss][Tt][Rr][Oo]
+inicio [Ii][Nn][Ii][Cc][Ii][Oo]
+fin [Ff][Ii][Nn]
+ent [Ee][Nn][Tt]
+real [Rr][Ee][Aa][Ll]
+dreal [Dd][Rr][Ee][Aa][Ll]
+car [Cc][Aa][Rr]
+sin [Ss][Ii][Nn]
+base {ent}|{real}|{dreal}|{car}|{sin}
+func [Ff][Uu][Nn][Cc]
+si [Ss][Ii]
+entonces [Ee][Nn][Tt][Oo][Nn][Cc][Ee][Ss]
+sino [Ss][Ii][Nn][Oo]
+mientras [Mm][Ii][Ee][Nn][Tt][Rr][Aa][Ss]
+hacer [Hh][Aa][Cc][Ee][Rr]
+mientrasq [Mm][Ii][Ee][Nn][Tt][Rr][Aa][Ss]" "[Qq][Uu][Ee]
+escribir [Ee][Ss][Cc][Rr][Ii][Bb][Ii][Rr]
+leer [Ll][Ee][Ee][Rr]
+devolver [Dd][Ee][Vv][Oo][Ll][Vv][Ee][Rr]
+terminar [Tt][Ee][Rr][Mm][Ii][Nn][Aa][Rr]
+verdadero [Vv][Ee][Rr][Dd][Aa][Dd][Ee][Rr][Oo]
+falso [Ff][Aa][Ll][Ss][Oo]
 
 %x com1
 %x com2
@@ -23,130 +50,85 @@ cadena \"[^\"]*\"
 
 %%
 
-{int}				{ yylval.line = yylineno; yylval.num.ival = atoi(yytext); yylval.num.type = 1; return ENTERO; }
 
-{double}			{ yylval.line = yylineno; yylval.num.dval = atof(yytext); yylval.num.type = 3; return DOBLE; }
+{func}  {yylval.line = yylineno;return FUNC;}
 
-{float}				{ yylval.line = yylineno; yylval.num.fval = atof(yytext); yylval.num.type = 2; return FLOTANTE; }
+{si}    {yylval.line = yylineno;return SI;}
 
-{char}				{ yylval.line = yylineno; return CARACTER; }
+{verdadero} {yylval.line = yylineno;return VERDADERO;}
 
-{cadena}			{ yylval.line = yylineno; return CADENA; }
+{falso} {yylval.line = yylineno;return FALSO;}
 
-ent					{ yylval.line = yylineno; return INT; }
+{mientras}  {yylval.line = yylineno;return MIENTRAS;}
 
-dreal				{ yylval.line = yylineno; return DOUBLE; }
+{id} { yylval.line = yylineno;yylval.sval = strdup(yytext);return ID;}
 
-real				{ yylval.line = yylineno; return FLOAT; }
+{sin}   {yylval.line = yylineno;return SIN;}
 
-car				{ yylval.line = yylineno; return CHAR; }
+{car_def}   {yylval.line = yylineno;yylval.num.tipo = 4;yylval.car.cval = yytext;return CAR;}
 
-sin				{ yylval.line = yylineno; return VOID; }
+{ent_def}   {yylval.line = yylineno;yylval.num.tipo = 1;yylval.num.ival = atoi(yytext);return NUM;}
 
-func				{ yylval.line = yylineno; return FUNCION; }
+{real_def}  {yylval.line = yylineno;yylval.num.tipo = 2;yylval.num.fval = atof(yytext);return NUM;}
 
-si 					{ yylval.line = yylineno; return IF; }
+{dreal_def} {yylval.line = yylineno; yylval.num.tipo = 3; yylval.num.dval = atof(yytext);return NUM;}
 
-sino 				{ yylval.line = yylineno; return ELSE; }
 
-entonces					{ yylval.line = yylineno; return THEN; }
+"+"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MAS; }
 
-mientras				{ yylval.line = yylineno; return WHILE; }
+"-"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MENOS; }
 
-que				{ yylval.line = yylineno; return WHAT; }
+"*"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return PROD; }
 
-hacer 					{ yylval.line = yylineno; return DO; }
+"/"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return DIV; }
 
-for					{ yylval.line = yylineno; return FOR; }
+"%"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MOD; }
 
-devolver				{ yylval.line = yylineno; return RETURN; }
+"(" {yylval.line = yylineno;return LPAR;}
 
-segun				{ yylval.line = yylineno; return SWITCH; }
+")" {yylval.line = yylineno;return RPAR;}
 
-caso				{ yylval.line = yylineno; return CASE; }
+":="    {yylval.line = yylineno;return ASIG;}
 
-registro 			{ yylval.line = yylineno; return REGISTRO; }
+"," {yylval.line = yylineno;return COMA;}
 
-predet				{ yylval.line = yylineno; return DEFAULT; }
+";" {yylval.line = yylineno;return PC;}
 
-inicio				{ yylval.line = yylineno; return INICIO; }
+"[" {yylval.line = yylineno;return LCOR;}
 
-fin					{ yylval.line = yylineno; return FIN; }
+"]" {yylval.line = yylineno;return RCOR;}
 
-terminar				{ yylval.line = yylineno; return BREAK; }
+"oo"    {yylval.line = yylineno;return OO;}
 
-verdadero 				{ yylval.line = yylineno; return TRUE; }
+"yy"    {yylval.line = yylineno;return YY;}
 
-falso				{ yylval.line = yylineno; return FALSE; }
+"no"    {yylval.line = yylineno;return NOT;}
 
-{id}				{ yylval.line = yylineno; yylval.sval = strdup(yytext); return ID; }
+"<"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return SMT; }
 
-"+"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MAS; }
+">"	{ yylval.line = yylineno; yylval.sval = strdup(yytext); return GRT; }
 
-"-"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MENOS; }
+">=" { yylval.line = yylineno; yylval.sval = strdup(yytext); return GREQ; }
 
-"*"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return PROD; }
+"<=" { yylval.line = yylineno; yylval.sval = strdup(yytext); return SMEQ; }
 
-"/"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return DIV; }
+"<>" { yylval.line = yylineno; yylval.sval = strdup(yytext); return DIF; }
 
-"%"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return MOD; }
-
-"(" 				{ yylval.line = yylineno; return PRA; }
-
-")" 				{ yylval.line = yylineno; return PRC; }
-
-"["					{ yylval.line = yylineno; return CTA; }
-
-"]"					{ yylval.line = yylineno; return CTC; }
-
-"{"					{ yylval.line = yylineno; return LLA; }	
-
-"}"					{ yylval.line = yylineno; return LLC; }	
-
-":="				{ yylval.line = yylineno; return ASIG; }	
-
-":"					{ yylval.line = yylineno; return DPTS; }	
-
-","					{ yylval.line = yylineno; return COMA; }
-
-\.					{ yylval.line = yylineno; return PT; }
-
-"no"				{ yylval.line = yylineno; return NOT; }	
-
-"oo"				{ yylval.line = yylineno; return OR; }	
-
-"yy"				{ yylval.line = yylineno; return AND; }	
-
-"<"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return SMT; }
-
-">"					{ yylval.line = yylineno; yylval.sval = strdup(yytext); return GRT; }
-
-">="				{ yylval.line = yylineno; yylval.sval = strdup(yytext); return GREQ; }
-
-"<="				{ yylval.line = yylineno; yylval.sval = strdup(yytext); return SMEQ; }
-
-"<>"				{ yylval.line = yylineno; yylval.sval = strdup(yytext); return DIF; }
-
-"=="				{ yylval.line = yylineno; yylval.sval = strdup(yytext); return EQEQ; }
+"==" { yylval.line = yylineno; yylval.sval = strdup(yytext); return EQEQ; }
 
 [ \n\t\r]			{}
 
-"/*"				{ BEGIN(com1); }
+<comen1> {"*>" {BEGIN(INITIAL);}
+<<EOF>> {printf("Ha ocurrido un error léxico: el comentario no finaliza\n"); exit(1);}
+.|\n {/*Ignora todo lo que no es *>*/}
+}
 
-<com1>\n    		{ yylval.line = yylineno; }
+<comen2> {. {/*Ignora todo lo que no sea un salto de linea*/}\n {BEGIN (INITIAL);}}
 
-<com1>[^*\n]*		{}
+<INITIAL> {"<*"  {BEGIN(com1);} "--"  {BEGIN(com2);}}
 
-<com1>"*"+[^*/\n]*	{}
+"*>" {printf("Ha ocurrido un error léxico en la linea : %i\nEl caracter de error es %s\n", yylineno, yytext); }
 
-<com1>"*"+"/"		{ BEGIN(INITIAL); }
-
-"//"				{ BEGIN(com2); }
-
-<com2>[^*\n]*		{}
-
-<com2>\n  			{ BEGIN(INITIAL); }
-
-.					{ printf("\n****Error lexico en la linea: %d\n", yylineno);}
+. { printf("\n****Error lexico en la linea: %d\n", yylineno);}
 
 %%
