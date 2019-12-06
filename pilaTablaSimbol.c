@@ -30,7 +30,7 @@ void borrarSymStack(symstack *pts){
 }
 
 symtab* getCimaSym(symstack *pts){
-    symtab *aux = (pts->root+pts->num);
+    symtab *aux = (pts->root+(pts->num-1));
     return aux;
 }
 

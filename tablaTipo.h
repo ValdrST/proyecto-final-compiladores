@@ -73,6 +73,6 @@ int getNumElem(typetab* tt, int id);
  * En caso de no encontrarlo retorna NULL
  */
 char* getNombre(typetab* tt, int id);
-void imprimirTablaType(typetab *tt);
+void printTablaTipos(typetab *tt);
 #define TABLATIPO_H_INCLUDED
 #endif

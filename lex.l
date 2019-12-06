@@ -10,11 +10,12 @@
 %option noyywrap
 %option yylineno
 
+
 digito [0-9]
 ent_def {digito}+
-exp [Ee][+-]?{ent}
-real_def ({ent}.?{ent}{exp}|{ent}?.{ent}{exp}?|{ent}.{ent}?{exp}?)[Ff]
-dreal_def {ent}.?{ent}{exp}|{ent}?.{ent}{exp}?|{ent}.{ent}?{exp}?
+exp [Ee][+-]?{digito}
+real_def ({digito}.?{digito}{exp}|{digito}?.{digito}{exp}?|{digito}.{digito}?{exp}?)[Ff]
+dreal_def {digito}.?{digito}{exp}|{digito}?.{digito}{exp}?|{digito}.{digito}?{exp}?
 letra [a-zA-Z]
 id (_|{letra})((_|{letra}|{digito})){0,31}
 
@@ -49,39 +50,8 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 %%
 
-{registro} {yylval.line = yylineno;return REGISTRO;}
 
-{inicio} {yylval.line = yylineno;printf("inicio");return INICIO;}
 
-{func}  {yylval.line = yylineno;return FUNC;}
-
-{si}    {yylval.line = yylineno;return SI;}
-
-{fin}    {yylval.line = yylineno;return FIN;}
-
-{car}    {yylval.line = yylineno;return CAR;}
-
-{ent}    {yylval.line = yylineno;printf("chinga tu madre");return ENT;}
-
-{entonces}    {yylval.line = yylineno;return ENTONCES;}
-
-{sino}    {yylval.line = yylineno;return SINO;}
-
-{verdadero} {yylval.line = yylineno;return VERDADERO;}
-
-{falso} {yylval.line = yylineno;return FALSO;}
-
-{mientras}  {yylval.line = yylineno;return MIENTRAS;}
-
-{sin}   {yylval.line = yylineno;return SIN;}
-
-"oo"    {yylval.line = yylineno;return OO;}
-
-"yy"    {yylval.line = yylineno;return YY;}
-
-"no"    {yylval.line = yylineno;return NOT;}
-
-{car_def}   {yylval.line = yylineno;yylval.car.tipo = 4;sprintf(yylval.sval,"%c",yytext[1]);return CARACTER;}
 
 {ent_def}   {yylval.line = yylineno;yylval.num.tipo = 1;yylval.num.ival = atoi(yytext);return NUM;}
 
@@ -89,6 +59,51 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 {dreal_def} {yylval.line = yylineno; yylval.num.tipo = 3; yylval.num.dval = atof(yytext);return NUM;}
 
+{car_def}   {yylval.line = yylineno;yylval.car.tipo = 4;sprintf(yylval.sval,"%c",yytext[1]);return CARACTER;}
+
+{ent}    {yylval.line = yylineno;return ENT;}
+
+{dreal} {yylval.line = yylineno;return DREAL;}
+
+{real} {yylval.line = yylineno;return REAL;}
+
+{car} {yylval.line = yylineno;return CAR;}
+
+{sin}   {yylval.line = yylineno;return SIN;}
+
+{registro} {yylval.line = yylineno;return REGISTRO;}
+
+{inicio} {yylval.line = yylineno;return INICIO;}
+
+{func}  {yylval.line = yylineno;return FUNC;}
+
+{sino}    {yylval.line = yylineno;return SINO;}
+
+{si}    {yylval.line = yylineno;return SI;}
+
+{devolver} {yylval.line = yylineno;return DEVOLVER;}
+
+{fin}    {yylval.line = yylineno;return FIN;}
+
+{entonces}    {yylval.line = yylineno;return ENTONCES;}
+
+{verdadero} {yylval.line = yylineno;return VERDADERO;}
+
+{falso} {yylval.line = yylineno;return FALSO;}
+
+{mientras}  {yylval.line = yylineno;return MIENTRAS;}
+
+{mientrasq}  {yylval.line = yylineno;return MIENTRAS_QUE;}
+
+{leer}    {yylval.line = yylineno;return LEER;}
+
+{escribir}    {yylval.line = yylineno;return ESCRIBIR;}
+
+"oo"    {yylval.line = yylineno;return OO;}
+
+"yy"    {yylval.line = yylineno;return YY;}
+
+"no"    {yylval.line = yylineno;return NOT;}
 
 "+"	{ yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext); return MAS; }
 
@@ -104,7 +119,7 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 ")" {yylval.line = yylineno;return PRC;}
 
-":="    {yylval.line = yylineno;return ASIG;}
+":="   {yylval.line = yylineno;return ASIG;}
 
 "," {yylval.line = yylineno;return COMA;}
 
@@ -112,7 +127,7 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "]" {yylval.line = yylineno;return DCOR;}
 
-
+"." {yylval.line = yylineno;return PT;}
 
 "<"	{ yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext); return SMT; }
 
@@ -126,11 +141,11 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "==" { yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext); return EQEQ; }
 
-{id} { yylval.line = yylineno;printf("chinga tu madre");sprintf(yylval.sval,"%s",yytext);return ID;}
+{id} { yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext);return ID;}
 
-"\n" {return SL;}
+"\n" {yylval.line = yylineno; return SL;}
 
-[ \n\t\r]+	{}
+[ \n\t\r]	{}
 
 
 

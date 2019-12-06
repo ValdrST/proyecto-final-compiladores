@@ -270,15 +270,13 @@ int getNumParam(symtab *st, char *id){
     }
 }
 
-const char* getParams(param *p){
-    char paramS[200];
+void getParams(char *paramsS,param *p){
     while(p){
         char tipo[10];
         sprintf(tipo, " %d", p->tipo);
-        strcat(paramS,tipo);
+        strcat(paramsS,tipo);
         p = p->next;
     }
-    return paramS;
 }
 // Imprime la tabla de simbolos
 void printTablaSimbolos(symtab *st){
@@ -288,7 +286,9 @@ void printTablaSimbolos(symtab *st){
     do{
         if(st->root != NULL){
             id = st->root->id;
-            printf("id: %d dir: %d tipo: $d tipoVar: %d params: %s\n",st->root->id,getDir(st,id),getTipo(st,id),getTipoVar(st,id),getParams(st->root->params->root));
+            char _params_[100];
+            getParams(_params_,st->root->params->root);
+            printf("id: %d dir: %d tipo: $d tipoVar: %d params: %s\n",st->root->id,getDir(st,id),getTipo(st,id),getTipoVar(st,id),_params_);
             s_next = st->root->next;
         }
     }while(s_next != NULL);

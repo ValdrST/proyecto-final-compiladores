@@ -81,28 +81,33 @@ typetab* crearTypeTab(){
     tt->num=0;
     tt->next = NULL;
 
-    //Crear tipo entero
+    
     tipo_base = crearTipoPrimitivo(0);
     arquetipo = crearArqueTipo(false, tipo_base);
-    nuevoTipo = crearTipoNativo(0, "ent", arquetipo, 4);
+    nuevoTipo = crearTipoNativo(0, "sin", arquetipo, 0);
+    insertarTipo(tt, nuevoTipo);
+    //Crear tipo entero
+    tipo_base = crearTipoPrimitivo(1);
+    arquetipo = crearArqueTipo(false, tipo_base);
+    nuevoTipo = crearTipoNativo(1, "ent", arquetipo, 4);
     insertarTipo(tt, nuevoTipo);
 
     //Crear tipo real
-    tipo_base = crearTipoPrimitivo(1);
+    tipo_base = crearTipoPrimitivo(2);
     arquetipo = crearArqueTipo(false, tipo_base);
-    nuevoTipo = crearTipoNativo(1, "real", arquetipo, 4);
+    nuevoTipo = crearTipoNativo(2, "real", arquetipo, 8);
     insertarTipo(tt, nuevoTipo);
 
     //Crear tipo doble
-    tipo_base = crearTipoPrimitivo(2);
+    tipo_base = crearTipoPrimitivo(3);
     arquetipo = crearArqueTipo(false, tipo_base);
-    nuevoTipo = crearTipoNativo(2, "dreal", arquetipo, 8);
+    nuevoTipo = crearTipoNativo(3, "dreal", arquetipo, 16);
     insertarTipo(tt, nuevoTipo);
 
     //Crear tipo caracter
-    tipo_base = crearTipoPrimitivo(3);
+    tipo_base = crearTipoPrimitivo(4);
     arquetipo = crearArqueTipo(false, tipo_base);
-    nuevoTipo = crearTipoNativo(3, "car", arquetipo, 4);
+    nuevoTipo = crearTipoNativo(4, "car", arquetipo, 4);
     insertarTipo(tt, nuevoTipo);
     return tt;
 }
@@ -194,15 +199,15 @@ int insertarTipo(typetab *tt, type *t){
   */
  int getTam(typetab *tt, int id){
     if(tt->root){
-    type* aux = tt->root;
-    //Recorre la lista hasta que encuentre el id
-    int i;
-    for(i=0;i<id; i++)
-        aux = aux->next;
-    if(aux->tamBytes)
-        return aux->tamBytes;
-   }
-    return -1;
+        type* aux = tt->root;
+        while(aux != NULL){
+            if(aux->id == id){
+                return aux->tamBytes;
+            }
+            aux = aux->next;
+        }
+        return -1;
+    }
  }
 
 

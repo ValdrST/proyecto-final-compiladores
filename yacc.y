@@ -34,6 +34,8 @@
 	int indice;
 	int label_c;
 
+	int id_tipo;
+
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
 	int dir_aux;
 	// Variable que llevara la cuenta de variables temporales.
@@ -109,13 +111,9 @@
 %token CAR
 %token SIN
 %token REGISTRO
-%token LLA
-%token LLC
 %token COMA
-%token DPTS
 %token PT
 %token FUNC
-%token SI
 %token MIENTRAS
 %token MIENTRAS_QUE
 %token HACER
@@ -128,16 +126,16 @@
 %token PREDET
 %token<sval> CADENA
 %token<car> CARACTER
-%token TRUE
-%token FALSE
 %token ENTONCES
 %token LEER
 %token ESCRIBIR
 %token DCOR
 %token LCOR
+%token SI
 %token SL
 
-/* Presedencia y asociatividad de operadores */
+
+/* Precedencia y asociatividad de operadores */
 %left ASIG
 %left OO
 %left YY
@@ -146,9 +144,9 @@
 %left<sval> MAS MENOS
 %left<sval> PROD DIV MOD
 %left NOT
-%nonassoc PRA CTA PRC CTC
-%left SI
-%left SINO
+%nonassoc PRA LCOR PRC DCOR CTA CTC
+%nonassoc SIX
+%nonassoc SINO
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo  tipo_registro declaraciones arg tipo_arg param_arr
@@ -159,13 +157,13 @@
 %%
 
 /* programa -> declaraciones funciones */
-programa:declaraciones funciones {
+programa:{
 		label_c = 0;
 		indice = 0;
 		temp = 0;
 		stackDir = crearStackDir();
 		dir = 0;
-		
+		id_tipo = 5;
 		StackTT = crearTypeStack();
 		StackTS = crearSymStack();
 		tt_global = crearTypeTab();
@@ -173,18 +171,14 @@ programa:declaraciones funciones {
 		insertarTypeTab(StackTT,tt_global);
 		insertarSymTab(StackTS,ts_global);
 		StackCad = crearStackCad();
-		//print_symbols_table(); 
-		//print_types_table(); 
-		//print_code();
-	}
+	} declaraciones SL funciones 
 	;
 
 
-/* declaraciones -> tipo lista_var declaraciones 
+/* declaraciones -> tipo lista_var \n declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
 declaraciones: tipo {tipo_g = $1.tipo;} lista_var SL declaraciones 
-	| tipo_registro  lista_var SL 
-	declaraciones {tipo_g = $1.tipo;}
+	| tipo_registro {tipo_g = $1.tipo;} lista_var SL declaraciones 
 	| {}
 	;
 
@@ -201,26 +195,25 @@ tipo_registro: REGISTRO SL INICIO declaraciones SL FIN{
 	//setTT(getCimaSym(StackTS),tt1);
 	symtab *ts1 = sacarSymTab(StackTS);
 	dir = popStackDir(&stackDir);
-	$$.tipo = insertarTipo(getCimaType(StackTT),crearTipoNativo(0,"registro",crearArqueTipo(true,crearTipoStruct(ts1)),-1));};
+	$$.tipo = insertarTipo(getCimaType(StackTT),crearTipoNativo(id_tipo,"registro",crearArqueTipo(true,crearTipoStruct(ts1)),-1));
+	id_tipo++;
+	};
+	
 
-tipo: base tipo_arreglo{
-	base = $1;
-	$$ = $2;
-};
+tipo: base {base = $1;} tipo_arreglo{$$ = $3;};
 
-
-/* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-base: {printf("hello");} ENT {$$.tipo = 1; $$.dim = 4;}
+base: SIN {$$.tipo = 0; $$.dim = 0;}
+	| ENT {$$.tipo = 1; $$.dim = 4;}
 	| REAL {$$.tipo = 2; $$.dim = 8;}
 	| DREAL {$$.tipo = 3; $$.dim = 16;}
 	| CAR {$$.tipo = 4; $$.dim = 2;}
-	| SIN {$$.tipo = 0; $$.dim = 0;}
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */
-tipo_arreglo: CTA NUM CTC tipo_arreglo {
+tipo_arreglo: LCOR NUM DCOR tipo_arreglo {
 	if($2.tipo == 1 && $2.ival > 0){
-		$$.tipo =  insertarTipo(getCimaType(StackTT),crearTipoArray(6,"array",getTipoBase(getCimaType(StackTT),tipo_g),base.dim,$2.ival));
+		$$.tipo =  insertarTipo(getCimaType(StackTT),crearTipoArray(id_tipo,"array",getTipoBase(getCimaType(StackTT),tipo_g),base.dim,$2.ival));
+		id_tipo ++;
 	}
 	yyerror("El indice tiene que ser entero y mayor que cero\n");
 	}
@@ -252,38 +245,36 @@ lista_var: 	lista_var COMA ID {
 	;
 
 
-/* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones: FUNC tipo ID PRA argumentos PRC INICIO SL
-	declaraciones {FuncReturn = false;} sentencias SL 
+funciones: FUNC tipo ID {
+	if(buscar(getFondoSym(StackTS),$3) != 1 ){
+		symbol *sym = crearSymbol($3, tipo_g, -1, "func");
+		insertar(getFondoSym(StackTS),sym);
+		addStackDir(&stackDir,dir);
+		FuncType = $2.tipo;
+		dir = 0;
+	} else{
+		yyerror("el identificador ya fue declarado");
+	}
+} PRA argumentos PRC SL INICIO declaraciones {FuncReturn = false;} sentencias SL 
 	FIN {
-		if(buscar(getFondoSym(StackTS),$3) != 1 ){
-			symbol *sym = crearSymbol($3, tipo_g, -1, "func");
-			insertar(getFondoSym(StackTS),sym);
-			addStackDir(&stackDir,dir);
-			FuncType = $2.tipo;
-			dir = 0;
 			insertarSymTab(StackTS,ts_global);
 			insertarTypeTab(StackTT,tt_global);
 			dir = popStackDir(&stackDir);
 			agregar_cuadrupla(&CODE,"label","","",$3);
 			label *L = newLabel();			
-			backpatch(*L,$11.lnext->i);
+			backpatch(*L,$12.lnext->i);
 			agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
 			sacarSymTab(StackTS);
 			sacarTypeTab(StackTT);
 			dir = popStackDir(&stackDir);
-			addListParam(getCimaSym(StackTS),$5.lista,$3);
+			addListParam(getCimaSym(StackTS),$6.lista,$3);
 			if($2.tipo != 0 && FuncReturn == false){
 				yyerror("La funcion no tiene valor de retorno");
 			}
-		}else{
-			yyerror("el identificador ya fue declarado");
-		}
 	}
 	SL funciones | {}
 	;
 
-/* A -> G | epsilon */
 argumentos:	lista_arg { $$.lista = $1.lista; }
 	| SIN { $$.lista = NULL; }
 	;
@@ -359,7 +350,7 @@ sentencia: 	SI expresion_booleana sentencias ENTONCES SL sentencias SL FIN {
 
 		backpatch(*L, $2.ltrue->i);
 		$$.lnext = merge($2.lfalse,$3.lnext);
-	}
+	} %prec SIX
 	| SI expresion_booleana sentencias SL SINO sentencias SL FIN {
 		label *L = newLabel();
 		label *L1 = newLabel();
@@ -466,14 +457,14 @@ expresion_booleana: expresion_booleana OO expresion_booleana {
 		$$.ltrue = $1.ltrue;
 		$$.lfalse = $1.lfalse;
 	}
-	| TRUE {
+	|VERDADERO {
 		char* I = newIndex();
 		$$.ltrue = NULL;
 		$$.ltrue = create_list(atoi(I));
 		agregar_cuadrupla(&CODE,"goto","","",I);
 		$$.lfalse = NULL;
 	}
-	| FALSE {
+	| FALSO {
 		char* I = newIndex();
 		$$.ltrue = NULL;
 		$$.lfalse = create_list(atoi(I));
@@ -502,7 +493,7 @@ expresion / expresion |
 expresion % expresion | (expresion) 
 variable | num | cadena  | caracter | id ( parametros ) */
 
-expresion: expresion MAS expresion {$$ = operacion($1,$3,$2);}
+expresion: expresion MAS expresion {$$ = operacion($1,$3,$2); printf("E-> E + E\n");}
 	| expresion MENOS expresion {$$ = operacion($1,$3,$2);}
 	| expresion PROD expresion {$$ = operacion($1,$3,$2);}
 	| expresion DIV expresion {$$ = operacion($1,$3,$2);}
@@ -607,6 +598,7 @@ arreglo: ID LCOR expresion DCOR {
 			if ($3.tipo == 1){
 				strcpy($$.base,$1.base);
 				$$.tipo = getTipoBase(getCimaType(StackTT),$1.tipo)->t.type;
+				printf("Hola");
 				$$.tam = getTam(getCimaType(StackTT),$$.tipo);
 				int temp_1 = atoi(newTemp());
 				$$.dir = atoi(newTemp());
@@ -828,7 +820,7 @@ char* label_to_char(label l){
 /* Funcion encargada de manejar los errores. */
 void yyerror(char *s){
 	(void) s;
-	fprintf(stderr, "\n****Error: %s. En la linea: %d\n", s, yylineno);
+	fprintf(stderr, "\n****Error: %s. En la linea: %d, token %s\n", s, yylineno, yytext);
 }
 
 /* Funcion principal. */
