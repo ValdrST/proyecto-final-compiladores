@@ -82,6 +82,11 @@ symbol* crearSymbol(char *id, int tipo, int dir, char* tipoVar){
 
 }
 
+void addListParam(symtab* st, listParam *lp, char* id){
+    symbol *sym = buscar(st,id);
+    sym->params = lp;
+}
+
 /* Retorna un apuntador a una variable symtab,
  * inicia contador en 0
  */

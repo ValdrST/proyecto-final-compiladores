@@ -9,9 +9,7 @@ struct _listParam {
   param *root;
   int num;
 };
-param *crearParam(int tipo);
 void borraParam(param *p);
-listParam *crearLP();
 void add(listParam lp, int tipo);
 void borrarListParam(listParam *lp);
 int getNumListParam(listParam *lp);
@@ -56,6 +54,7 @@ symbol* crearSymbol(char *id, int tipo, int dir, char* tipoVar);
  */
 symtab* crearSymTab();
 
+void addListParam(symtab* st, listParam *lp, char* id);
 /* Borra toda la lista, libera la memoria */
 void borrarSymTab(symtab*);
 

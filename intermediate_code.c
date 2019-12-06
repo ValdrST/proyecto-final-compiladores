@@ -60,7 +60,6 @@ void elimina_code(code *c){
 	elimina_quad(c->root);
 }
 
-
 /* Funcion que crea una lista dentro de una etiqueta. */
 label create_list(int l){
 	label list;

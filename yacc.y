@@ -19,7 +19,8 @@
 
 	// Variable que llevara el manejo de direcciones.
 	int dir;
-
+	int FuncType;
+	bool FuncReturn;
 	stack_dir stackDir;
 	int tipo_g; 
 	symstack *StackTS;
@@ -28,6 +29,8 @@
 	ttype base;
 	typetab *tt_global;
 	symtab *ts_global;
+	label L;
+	code CODE;
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
 	int dir_aux;
 	// Variable que llevara la cuenta de variables temporales.
@@ -151,10 +154,10 @@ programa:{
 		dir = 0;
 		StackTT = crearTypeStack();
 		StackTS = crearSymStack();
-		typetab *tt = crearTypeTab();
-		symtab *ts = crearSymTab();
-		insertarTypeTab(StackTT,tt);
-		insertarSymTab(StackTS,ts);
+		tt_global = crearTypeTab();
+		ts_global = crearSymTab();
+		insertarTypeTab(StackTT,tt_global);
+		insertarSymTab(StackTS,ts_global);
 		StackCad = crearStackCad();
 	} declaraciones funciones {
 		//print_symbols_table(); 
@@ -237,10 +240,32 @@ lista_var: 	lista_var COMA ID {
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
 funciones: FUNC tipo ID PRA argumentos PRC INICIO 
-	declaraciones sentencias 
+	declaraciones {FuncReturn = false;} sentencias 
 	FIN {
 		if(buscar(getFondoSym(StackTS),$3) != 1 ){
-
+			symbol *sym = crearSymbol($3, tipo_g, -1, "func");
+			insertar(getFondoSym(StackTS),sym);
+			addStackDir(&stackDir,dir);
+			FuncType = $2.tipo;
+			dir = 0;
+			insertarSymTab(StackTS,ts_global);
+			insertarTypeTab(StackTT,tt_global);
+			dir = popStackDir(&stackDir);
+			agregar_cuadrupla(&CODE,"label","","",$3);
+			label L;
+			char label_s[30];
+			sprintf(label_s,"$s$d","label",L.i);
+			backpatch(L,$10.lnext.i);
+			agregar_cuadrupla(&CODE,"label","","",label_s);
+			sacarSymTab(StackTS);
+			sacarTypeTab(StackTT);
+			dir = popStackDir(&stackDir);
+			addListParam(getCimaSym(StackTS),$5.lista,$3);
+			if($2.tipo != 0 && FuncReturn == false){
+				yyerror("La funcion no tiene valor de retorno");
+			}
+		}else{
+			yyerror("el identificador ya fue declarado");
 		}
 	}
 	funciones | {}
@@ -360,16 +385,8 @@ parametros: lista_param
 	;
 
 /* lista_param -> lista_param, expresion | expresion */
-lista_param:	lista_param COMA expresion {
-	*(list_args + num_args) = $3.type;
-	num_args++;
-	}
-	| expresion {
-		*(list_args + num_args) = $1.type;
-		num_args++;
-		$$.total = num_args + 1;
-		$$.args = list_args;
-	}
+lista_param:	lista_param COMA expresion 
+	| expresion
 	;
 
 

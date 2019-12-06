@@ -1,5 +1,6 @@
 #ifndef ATTRIBS_H_INCLUDED
 #include "intermediate_code.h"
+#include "tablaSimbol.h"
 
 /* Estructura para el manejo de expresiones. */
 typedef struct _expresion{
@@ -46,12 +47,12 @@ typedef struct _stack_dir{
 /* Estructura para el manejo de sentencias. */
 typedef struct _sentence{
     label lnext;
-    int first;    
+    int first;
 } sentence;
 
 /* Estructura para el manejo de parametros. */
 typedef struct _args_list{
-    int* args;
+    listParam *lista;
     int total;
 } args_list;
 
