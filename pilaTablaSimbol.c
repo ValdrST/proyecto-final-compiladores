@@ -30,8 +30,12 @@ void borrarSymStack(symstack *pts){
 }
 
 symtab* getCimaSym(symstack *pts){
-    symtab *aux = pts->root;
+    symtab *aux = (pts->root+pts->num);
     return aux;
+}
+
+symtab* getFondoSym(symstack *pts){
+    return pts->root;
 }
 
 void insertarSymTab(symstack *pts, symtab *sym_tab){

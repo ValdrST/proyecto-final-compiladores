@@ -21,7 +21,7 @@
 	int dir;
 
 	stack_dir stackDir;
-
+	int tipo_g; 
 	symstack *StackTS;
 	stack_cad StackCad;
 	typestack *StackTT;
@@ -166,16 +166,25 @@ programa:{
 
 /* declaraciones -> tipo lista_var declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
-declaraciones: tipo  lista_var declaraciones {$$ = $1;}
-	| tipo_registro  lista_var declaraciones {$$ = $1;}
+declaraciones: tipo  lista_var declaraciones {tipo_g = $1.tipo;}
+	| tipo_registro  lista_var declaraciones {tipo_g = $1.tipo;}
 	| {}
 	;
 
 /* tipo_registro -> registro inicio declaraciones fin */
-tipo_registro: REGISTRO INICIO declaraciones{
+tipo_registro: REGISTRO INICIO declaraciones FIN{
 	typetab *tt = crearTypeTab();
 	symtab *ts = crearSymTab();
-} FIN;
+	addStackDir(&stackDir,dir);
+	dir = 0;
+	insertarTypeTab(StackTT,tt);
+	insertarSymTab(StackTS,ts);
+	dir = popStackDir(&stackDir);
+	typetab *tt1 = sacarTypeTab(StackTT);
+	//setTT(getCimaSym(StackTS),tt1);
+	symtab *ts1 = sacarSymTab(StackTS);
+	dir = popStackDir(&stackDir);
+	$$.tipo = insertarTipo(getCimaType(StackTT),crearTipoNativo(0,"registro",crearArqueTipo(true,crearTipoStruct(ts1)),-1));};
 
 tipo: base tipo_arreglo{
 	base = $1;
@@ -192,20 +201,48 @@ base: ENT {$$.tipo = 1; $$.dim = 4;}
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA NUM CTC tipo_arreglo 
-	| {}
+tipo_arreglo:	CTA NUM CTC tipo_arreglo {
+	if($2.tipo == 1 && $2.ival > 0){
+		$$.tipo =  insertarTipo(getCimaType(StackTT),crearTipoArray(6,"array",getTipoBase(getCimaType(StackTT),tipo_g),base.dim,$2.ival));
+	}
+	yyerror("El indice tiene que ser entero y mayor que cero\n");
+}
+	| {
+		$$ = base;
+	}
 	;
 
 /* lista_var -> lista_var, id tipo_arreglo | id tipo_arreglo */
-lista_var: 	lista_var COMA ID 
-	| ID
+lista_var: 	lista_var COMA ID {
+	if(buscar(getCimaSym(StackTS),$3) == -1){
+		symbol *sym = crearSymbol($3, tipo_g, dir, "var");
+		insertar(getCimaSym(StackTS),sym);
+		dir = dir + getTam(getCimaType(StackTT),tipo_g);
+	}else{
+		yyerror("el identificador ya fue declarado");
+	}
+}
+	| ID {
+		if(buscar(getCimaSym(StackTS),$1) == -1){
+			symbol *sym = crearSymbol($1, tipo_g, dir, "var");
+			insertar(getCimaSym(StackTS),sym);
+			dir = dir + getTam(getCimaType(StackTT),tipo_g);
+		}else{
+			yyerror("el identificador ya fue declarado");
+		}
+
+	}
 	;
 
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
 funciones: FUNC tipo ID PRA argumentos PRC INICIO 
 	declaraciones sentencias 
-	FIN 
+	FIN {
+		if(buscar(getFondoSym(StackTS),$3) != 1 ){
+
+		}
+	}
 	funciones | {}
 	;
 

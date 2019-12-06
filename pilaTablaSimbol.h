@@ -12,6 +12,7 @@ symstack *crearSymStack();
 void borrarSymStack(symstack *pts);
 void insertarSymTab(symstack *pts, symtab *sym_tab);
 symtab* getCimaSym(symstack *pts);
+symtab* getFondoSym(symstack *pts);
 symtab* sacarSymTab(symstack *pts);
 #define PILATABLASIMBOL_H_INCLUDED
 #endif

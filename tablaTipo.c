@@ -205,6 +205,8 @@ int insertarTipo(typetab *tt, type *t){
     return -1;
  }
 
+
+
  /* Retorna el numero de elementos de un tipo
   * En caso de no encontrarlo retorna -1
   */

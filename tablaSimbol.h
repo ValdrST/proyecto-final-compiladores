@@ -49,7 +49,7 @@ void borrarListParam(listParam* lp);
 int getNumListParam(listParam* lp);
 
 /* Retorna un apuntador a una variable symbol */
-symbol* crearSymbol(char *id, int tipo, int dir, int tipoVar);
+symbol* crearSymbol(char *id, int tipo, int dir, char* tipoVar);
 
 /* Retorna un apuntador a una variable symtab,
  * inicia contador en 0

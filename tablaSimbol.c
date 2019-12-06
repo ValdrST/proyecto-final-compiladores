@@ -63,14 +63,14 @@ int getNumListParam(listParam *lp){
 }
 
 /* Retorna un apuntador a una variable symbol */
-symbol* crearSymbol(char *id, int tipo, int dir, int tipoVar){
+symbol* crearSymbol(char *id, int tipo, int dir, char* tipoVar){
     symbol* sym_tmp= malloc(sizeof(symbol));
     if(sym_tmp != NULL)
     {
         strcpy(sym_tmp->id, id);
         sym_tmp->tipo = tipo;
         sym_tmp->dir = dir;
-        sprintf(sym_tmp->tipoVar, "%d", tipoVar);
+        sprintf(sym_tmp->tipoVar, "%s", tipoVar);
         sym_tmp->params = crearLP();
         sym_tmp->next = NULL;
     }

@@ -44,6 +44,8 @@ void borrarType(type *t);
 /*Crea tabla de tipos*/
 typetab* crearTypeTab();
 
+void setSymTab(typetab tt, symtab* st);
+
 /* Borra la tabla de tipos, libera memoria */
 void borrarTypeTab(typetab *tt);
 

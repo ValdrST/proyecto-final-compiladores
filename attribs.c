@@ -34,3 +34,9 @@ stack_dir crearStackDir(){
     sd.numDirs = 0;
     return sd;
 }
+
+int popStackDir(stack_dir *sd){
+    int num = sd->numDirs;
+    sd->numDirs--;  
+    return sd->dir[num];
+}

@@ -59,5 +59,6 @@ stack_cad crearStackCad();
 void addStackCad(stack_cad *sc,char* cad);
 stack_dir crearStackDir();
 void addStackDir(stack_dir *sd,int dir);
+int popStackDir(stack_dir *sd);
 #define ATTRIBS_H_INCLUDED
 #endif

@@ -30,7 +30,7 @@ void borrarTypeStack(typestack *ptt){
 }
 
 typetab* getCimaType(typestack *ptt){
-    typetab *aux = ptt->root;
+    typetab *aux = (ptt->root+ptt->num);
     return aux;
 }
 
