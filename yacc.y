@@ -25,7 +25,7 @@
 	stack_dir stackDir;
 	int tipo_g; 
 	symstack *StackTS;
-	stack_cad StackCad;
+	stack_cad *StackCad;
 	typestack *StackTT;
 	ttype base;
 	typetab *tt_global;
@@ -72,7 +72,7 @@
 	expresion caracter(char);
 	expresion variable_v(char* c);
 	expresion cadena_s(char* c);
-	condition relacional(expresion, expresion, char*);
+	condition relacional(condition e1, condition e2, char* oprel);
 	condition and(condition, condition);
 	condition or(condition, condition);
 
@@ -148,7 +148,7 @@
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo tipo_registro declaraciones arg tipo_arg param_arr
-%type<args_list> argumentos lista_arg lista_param
+%type<args_list> argumentos lista_arg lista_param parametros
 %type<eval> expresion variable
 %type<cond> expresion_booleana relacional
 %type<sent> sentencias sentencia
@@ -382,23 +382,33 @@ sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN {
 		if(buscar(getCimaSym(StackTS),$1)!=-1){
 			int t = getTipo(getCimaSym(StackTS),$1);
 			int d = getDir(getCimaSym(StackTS),$1);
-			char *alfa = reducir($3.dir,$3.tipo,t);
+			char *di;
+			sprintf(di,"%d",$3.dir);
+			char *alfa = reducir(di,$3.tipo,t);
 			char* res;
 			sprintf(res,"%s%d","id",d);
 			agregar_cuadrupla(&CODE,"=",alfa,"",res); 
 		}
 	}
 	| variable ASIG expresion {
-		char *alfa = reducir($3.dir,$3.tipo,$1.tipo);
-		agregar_cuadrupla(&CODE,"=",alfa,"",$1.base[$1.dir]);
+		char *d;
+		sprintf(d,"%d",$3.dir);
+		char *alfa = reducir(d,$3.tipo,$1.tipo);
+		char *b;
+		sprintf(b,"%c",$1.base[$1.dir]);
+		agregar_cuadrupla(&CODE,"=",alfa,"",b);
 		$$.lnext = NULL;
 	}
 	| ESCRIBIR expresion {
-		agregar_cuadrupla(&CODE,"print",$2.dir,"","");
+		char *d;
+		sprintf(d,"%d",$2.dir);
+		agregar_cuadrupla(&CODE,"print",d,"","");
 		$$.lnext = NULL;
 	}
 	| LEER variable {
-		agregar_cuadrupla(&CODE,"scan",$2.dir,"",$2.dir);
+		char *d;
+		sprintf(d,"%d",$2.dir);
+		agregar_cuadrupla(&CODE,"scan",d,"",d);
 		$$.lnext = NULL;
 	}
 	| DEVOLVER {
@@ -410,8 +420,11 @@ sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN {
 	}
 	| DEVOLVER expresion {
 		if ( FuncType == 0 ){
-			char *alfa = reducir($2.dir,$2.tipo,FuncType);
-			agregar_cuadrupla(&CODE,"return",$2.dir,"","");
+			char *d;
+			sprintf(d,"%d",$2.dir);
+			char *alfa = reducir(d,$2.tipo,FuncType);
+			sprintf(d,"%d",$2.dir);
+			agregar_cuadrupla(&CODE,"return",d,"","");
 			FuncReturn = true;
 		}else{
 			yyerror("La funcion debe retonar valor no sin");
@@ -434,23 +447,46 @@ expresion_booleana: expresion_booleana OO expresion_booleana {
 	agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
 	}
 	|expresion_booleana YY expresion_booleana {
-		
+		label *L = newLabel();
+		backpatch(*L, $1.ltrue->i);
+		$$.ltrue = merge($1.lfalse,$3.lfalse);
+		$$.ltrue = $3.ltrue;
+		agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
 	}
-	| NOT expresion_booleana {}
-	| relacional {}
-	| TRUE {}
-	| FALSE {}
+	| NOT expresion_booleana {
+		$$.ltrue = $2.lfalse;
+		$$.lfalse = $2.ltrue;
+	}
+	| relacional {
+		$$.ltrue = $1.ltrue;
+		$$.lfalse = $1.lfalse;
+	}
+	| TRUE {
+		char* I = newIndex();
+		$$.ltrue = NULL;
+		$$.ltrue = create_list(atoi(I));
+		agregar_cuadrupla(&CODE,"goto","","",I);
+		$$.lfalse = NULL;
+	}
+	| FALSE {
+		char* I = newIndex();
+		$$.ltrue = NULL;
+		$$.lfalse = create_list(atoi(I));
+		agregar_cuadrupla(&CODE,"goto","","",I);
+	}
 	;
 
 
 /* R -> < | > | >= | <= | != | == */
-relacional:	relacional SMT relacional { $$ = $1; }
-	| relacional GRT relacional { $$ = $1; }
-	| relacional GREQ relacional { $$ = $1; }
-	| relacional SMEQ relacional { $$ = $1; }
-	| relacional EQEQ relacional { $$ = $1; }
-	| relacional DIF relacional { $$ = $1; }
-	| expresion {}
+relacional:	relacional SMT relacional { $$ = relacional($1,$3,$2); }
+	| relacional GRT relacional { $$ = relacional($1,$3,$2); }
+	| relacional GREQ relacional { $$ = relacional($1,$3,$2); }
+	| relacional SMEQ relacional { $$ = relacional($1,$3,$2); }
+	| relacional EQEQ relacional { $$ = relacional($1,$3,$2); }
+	| relacional DIF relacional { $$ = relacional($1,$3,$2); }
+	| expresion {
+		$$.tipo = $1.tipo;
+		$$.dir = $1.dir;}
 	;
 
 
@@ -461,17 +497,51 @@ expresion / expresion |
 expresion % expresion | (expresion) 
 variable | num | cadena  | caracter | id ( parametros ) */
 
-expresion: expresion MAS expresion
-	| expresion MENOS expresion 
-	| expresion PROD expresion 
-	| expresion DIV expresion 
-	| expresion MOD expresion 
-	| PRA expresion PRC
-	| variable
-	| NUM
-	| CADENA 
-	| CARACTER 
-	| ID PRA parametros PRC
+expresion: expresion MAS expresion {$$ = operacion($1,$3,$2);}
+	| expresion MENOS expresion {$$ = operacion($1,$3,$2);}
+	| expresion PROD expresion {$$ = operacion($1,$3,$2);}
+	| expresion DIV expresion {$$ = operacion($1,$3,$2);}
+	| expresion MOD expresion {$$ = operacion($1,$3,$2);}
+	| PRA expresion PRC {$$.dir = $2.dir;$$.tipo=$2.tipo;}
+	| variable {
+		$$.dir = atoi(newTemp());
+		$$.tipo = $1.tipo;
+		char* d;
+		sprintf(d,"%d",$$.dir);
+		char* b;
+		sprintf(b,"%c",$1.base[$1.dir]);
+		agregar_cuadrupla(&CODE, "*",b,"",d);
+	}
+	| NUM {
+		$$.tipo = $1.tipo;
+		$$.dir = $1.ival;
+	}
+	| CADENA {
+		$$.tipo = 7;
+		//$$.dir = addStackCad(StackCad,$1);
+	}
+	| CARACTER {
+		$$.tipo = 4;
+		//$$.dir = addStackCad(StackCad,$1);
+	}
+	| ID PRA parametros PRC {
+		if(buscar(getFondoSym(StackTS),$1) != -1){
+			if(strcmp(getTipoVar(getFondoSym(StackTS),$1), "func")==0){
+				listParam *lista = getListParam(getFondoSym(StackTS),$1);
+				if(getNumListParam(lista) != getNumListParam($3.lista)){
+					yyerror("El numero de argumentos no coincide");
+				}
+				param *p,*pl;
+				p = $3.lista->root;
+				pl = lista->root;
+				for(int i=0; i<getNumListParam($3.lista);i++){
+					if(p->tipo != pl->tipo){
+						yyerror("El tipo de los parametros no coincide");
+					}
+				}
+			}
+		}
+	}
 	;
 
 /* variable -> id | parte_arreglo | id . id */
@@ -605,21 +675,34 @@ char* newTemp(){
 
 
 /* Funcion encargada de generar el codigo intermedio para una operacion relacional. */
-condition relacional(expresion e1, expresion e2, char* oprel){
+condition relacional(condition e1, condition e2, char* oprel){
 	condition c;
-	char* arg1 = malloc(sizeof(char) * 50);
-	sprintf(arg1, "%s %s %s", e1.dir, oprel, e2.dir);
-	siginst = gen_code("if", arg1, "goto", "");
-	c.ltrue = create_list(siginst);
-	siginst = gen_code("goto", "", "", "");
-	c.lfalse = create_list(siginst);
-	if(e1.first != -1)
-		c.first = e1.first;
-	else if(e2.first != -1)
-		c.first = e2.first;
-	else
-		c.first = siginst - 1;
+	char *I1 = newIndex();
+	char *I2 = newIndex();
+	c.ltrue = create_list(atoi(I1));
+	c.lfalse = create_list(atoi(I2));
+	c.tipo = max(e1.tipo,e2.tipo);
+	char *d;
+	sprintf(d,"%d",e1.dir);
+	char *alfa1 = ampliar(d,e1.tipo,c.tipo);
+	sprintf(d,"%d",e2.dir);
+	char *alfa2 = ampliar(d,e2.tipo,c.tipo);
+	agregar_cuadrupla(&CODE,oprel,alfa1,alfa2,I1);
+	agregar_cuadrupla(&CODE,"goto","","",I2);
 	return c;
+}
+
+expresion operacion(expresion e1, expresion e2, char* op){
+	expresion e;
+	e.tipo = max(e1.tipo,e2.tipo);
+	e.dir = atoi(newTemp());
+	char *d;
+	sprintf(d,"%d",e1.dir);
+	char* alfa1 = ampliar(d,e1.tipo,e.tipo);
+	sprintf(d,"%d",e2.dir);
+	char* alfa2 = ampliar(d,e2.tipo,e.tipo);
+	sprintf(d,"%d",e.dir);
+	agregar_cuadrupla(&CODE,op,alfa1,alfa2,d);
 }
 
 char* newIndex(){

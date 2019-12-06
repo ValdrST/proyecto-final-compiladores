@@ -12,6 +12,8 @@ typedef struct _expresion{
 
 /* Estructura para el manejo de condicionales. */
 typedef struct _condition{
+    int tipo;
+    int dir;
     label *ltrue;
     label *lfalse;  
     int first;  
@@ -57,7 +59,7 @@ typedef struct _args_list{
     int total;
 } args_list;
 
-stack_cad crearStackCad();
+stack_cad *crearStackCad();
 void addStackCad(stack_cad *sc,char* cad);
 stack_dir crearStackDir();
 void addStackDir(stack_dir *sd,int dir);

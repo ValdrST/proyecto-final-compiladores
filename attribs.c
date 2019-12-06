@@ -1,11 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "attribs.h"
-stack_cad crearStackCad(){
+stack_cad* crearStackCad(){
     stack_cad *sc = malloc(sizeof(stack_cad));
     strcpy(sc->cval,"\0");
     sc->next = NULL;
-    return *sc; 
+    return sc; 
 }
 
 void addStackCad(stack_cad *sc,char* cad){

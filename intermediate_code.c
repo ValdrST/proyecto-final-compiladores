@@ -62,6 +62,7 @@ void elimina_code(code *c){
 
 /* Funcion que crea una lista dentro de una etiqueta. */
 label *create_list(int l){
+	
 	label *list = malloc(sizeof(label));
 	list->items = malloc(sizeof(int) * 100);
 	list->i = 0;
