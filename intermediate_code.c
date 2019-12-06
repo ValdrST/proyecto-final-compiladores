@@ -61,22 +61,22 @@ void elimina_code(code *c){
 }
 
 /* Funcion que crea una lista dentro de una etiqueta. */
-label create_list(int l){
-	label list;
-	list.items = malloc(sizeof(int) * 100);
-	list.i = 0;
-	list.items[list.i] = l;
-	list.i++;
+label *create_list(int l){
+	label *list = malloc(sizeof(label));
+	list->items = malloc(sizeof(int) * 100);
+	list->i = 0;
+	list->items[list->i] = l;
+	list->i++;
 	return list;
 }
 
 /* Funcion encargadad de copiar las listas de ambas etiquetas. */
-label merge(label l1, label l2){
-	label l;
+label *merge(label *l1, label *l2){
+	label *l = malloc(sizeof(label));
 	l = l1;
-	for(int i = 0; i < l2.i; i++){
-		l.items[l.i] = l2.items[i];
-		l.i++;
+	for(int i = 0; i < l2->i; i++){
+		l->items[l->i] = l2->items[i];
+		l->i++;
 	}
 	return l;
 }

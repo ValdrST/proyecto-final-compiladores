@@ -20,6 +20,7 @@
 	// Variable que llevara el manejo de direcciones.
 	int dir;
 	int FuncType;
+	int temp;
 	bool FuncReturn;
 	stack_dir stackDir;
 	int tipo_g; 
@@ -29,8 +30,10 @@
 	ttype base;
 	typetab *tt_global;
 	symtab *ts_global;
-	label L;
 	code CODE;
+	int indice;
+	int label_c;
+
 	// Variable que guardara la direccion cuando se haga un cambio de alcance.
 	int dir_aux;
 	// Variable que llevara la cuenta de variables temporales.
@@ -54,9 +57,13 @@
 	int busca_main();
 	int existe_en_alcance(char*);
 	int existe_globalmente(char*);
-
+	char *reducir(char *dir, int t1, int t2);
+	char *ampliar(char *dir, int t1, int t2);
 	int max(int, int);
 	void new_Temp(char*);
+	char* newIndex();
+	char* newTemp();
+	char* label_to_char(label l);
 	expresion operacion(expresion, expresion, char*);
 	expresion numero_entero(int);
 	expresion numero_flotante(float);
@@ -70,7 +77,7 @@
 	condition or(condition, condition);
 
 	expresion identificador(char *s);
-	void newLabel(char *s);
+	label *newLabel();
 
 	void yyerror(char*);
 
@@ -141,15 +148,17 @@
 
 /* Tipos */
 %type<tval> base tipo tipo_arreglo tipo_registro declaraciones arg tipo_arg param_arr
-%type<sval> variable
 %type<args_list> argumentos lista_arg lista_param
-%type<eval> expresion
+%type<eval> expresion variable
 %type<cond> expresion_booleana relacional
 %type<sent> sentencias sentencia
 %%
 
 /* programa -> declaraciones funciones */
 programa:{ 
+		label_c = 0;
+		indice = 0;
+		temp = 0;
 		stackDir = crearStackDir();
 		dir = 0;
 		StackTT = crearTypeStack();
@@ -252,11 +261,9 @@ funciones: FUNC tipo ID PRA argumentos PRC INICIO
 			insertarTypeTab(StackTT,tt_global);
 			dir = popStackDir(&stackDir);
 			agregar_cuadrupla(&CODE,"label","","",$3);
-			label L;
-			char label_s[30];
-			sprintf(label_s,"$s$d","label",L.i);
-			backpatch(L,$10.lnext.i);
-			agregar_cuadrupla(&CODE,"label","","",label_s);
+			label *L = newLabel();			
+			backpatch(*L,$10.lnext->i);
+			agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
 			sacarSymTab(StackTS);
 			sacarTypeTab(StackTT);
 			dir = popStackDir(&stackDir);
@@ -316,9 +323,14 @@ param_arr: LCOR DCOR param_arr {
 
 
 /* sentencias->sentencias sentencia | sentencias */
-sentencias: sentencias sentencia {$$ = $1;}
-			| sentencia {$$ = $1;}
-			;
+sentencias: sentencias sentencia {
+	label *L = newLabel();
+	backpatch(*L, $1.lnext->i);
+	$$.lnext = $2.lnext;
+	}
+	| sentencia {$$.lnext = $1.lnext;
+	}
+	;
 
 /* sentencia→si expresion_booleana entonces
 	sentencia fin | 
@@ -337,21 +349,93 @@ sentencias: sentencias sentencia {$$ = $1;}
 	segun (expresion)
 	casos predeterminado
 	fin|terminar */
-sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN
-	| SI expresion_booleana sentencias SINO sentencias FIN
-	| MIENTRAS expresion_booleana HACER sentencias FIN
-	| HACER sentencias MIENTRAS_QUE expresion_booleana
-	| ID ASIG expresion 
-	| ESCRIBIR expresion
-	| LEER variable
-	| DEVOLVER
-	| DEVOLVER expresion 
-	| TERMINAR
+sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN {
+		label *L = newLabel();
+
+		backpatch(*L, $2.ltrue->i);
+		$$.lnext = merge($2.lfalse,$3.lnext);
+	}
+	| SI expresion_booleana sentencias SINO sentencias FIN {
+		label *L = newLabel();
+		label *L1 = newLabel();
+		backpatch(*L, $2.ltrue->i);
+		backpatch(*L1, $2.lfalse->i);
+		$$.lnext = merge($3.lnext,$5.lnext);
+	}
+	| MIENTRAS expresion_booleana HACER sentencias FIN {
+		label *L = newLabel();
+		label *L1 = newLabel();
+		backpatch(*L, $4.lnext->i);
+		backpatch(*L1, $2.ltrue->i);
+		$$.lnext = $2.lfalse;
+		agregar_cuadrupla(&CODE,"goto","","",label_to_char(*L));
+	}
+	| HACER sentencias MIENTRAS_QUE expresion_booleana{
+		label *L = newLabel();
+		label *L1 = newLabel();
+		backpatch(*L, $4.ltrue->i);
+		backpatch(*L1, $2.lnext->i);
+		$$.lnext = $4.lfalse;
+		agregar_cuadrupla(&CODE,"goto","","",label_to_char(*L));
+	}
+	| ID ASIG expresion {
+		if(buscar(getCimaSym(StackTS),$1)!=-1){
+			int t = getTipo(getCimaSym(StackTS),$1);
+			int d = getDir(getCimaSym(StackTS),$1);
+			char *alfa = reducir($3.dir,$3.tipo,t);
+			char* res;
+			sprintf(res,"%s%d","id",d);
+			agregar_cuadrupla(&CODE,"=",alfa,"",res); 
+		}
+	}
+	| variable ASIG expresion {
+		char *alfa = reducir($3.dir,$3.tipo,$1.tipo);
+		agregar_cuadrupla(&CODE,"=",alfa,"",$1.base[$1.dir]);
+		$$.lnext = NULL;
+	}
+	| ESCRIBIR expresion {
+		agregar_cuadrupla(&CODE,"print",$2.dir,"","");
+		$$.lnext = NULL;
+	}
+	| LEER variable {
+		agregar_cuadrupla(&CODE,"scan",$2.dir,"",$2.dir);
+		$$.lnext = NULL;
+	}
+	| DEVOLVER {
+		if ( FuncType == 0 ){
+			agregar_cuadrupla(&CODE,"return","","","");
+		}else{
+			yyerror("La funcion no puede retonar valores");
+		}
+	}
+	| DEVOLVER expresion {
+		if ( FuncType == 0 ){
+			char *alfa = reducir($2.dir,$2.tipo,FuncType);
+			agregar_cuadrupla(&CODE,"return",$2.dir,"","");
+			FuncReturn = true;
+		}else{
+			yyerror("La funcion debe retonar valor no sin");
+		}
+		$$.lnext = NULL;
+	}
+	| TERMINAR {
+		char *I = newIndex();
+		agregar_cuadrupla(&CODE,"goto","","",I);
+		$$.lnext = newLabel();
+	}
 	;
 
 /* expresion_booleana->expresion_booleana||expresion_booleana|expresion_booleana&&expresion_booleana| !expresion_booleana| (expresion_booleana) | expresion R expresion | true | false */
-expresion_booleana: expresion_booleana OO expresion_booleana { $$ = or($1, $3); }
-	|expresion_booleana YY expresion_booleana { $$ = and($1, $3); }
+expresion_booleana: expresion_booleana OO expresion_booleana { 
+	label *L = newLabel();
+	backpatch(*L, $1.lfalse->i);
+	$$.ltrue = merge($1.ltrue,$3.ltrue);
+	$$.lfalse = $3.lfalse;
+	agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
+	}
+	|expresion_booleana YY expresion_booleana {
+		
+	}
 	| NOT expresion_booleana {}
 	| relacional {}
 	| TRUE {}
@@ -433,41 +517,92 @@ int max(int t1, int t2){
 	else{ yyerror("Tipos no compatibles"); return -1; }
 }
 
-/* Funcion encargada de tomar un numero entero y guardarlo como expresion. */
-expresion numero_entero(int num){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%d", num);
-	new_exp.type = 1;
-	new_exp.first = -1;
-	return new_exp;
+char *ampliar(char *dir, int t1, int t2){
+    quad c;
+    char *t= (char*) malloc(32*sizeof(char));
+    
+    if( t1==t2) return dir;
+    if( t1 ==0 && t2 == 1){
+        c.op = "=";
+        strcpy(c.arg1, "(float)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        return t;
+    }        
+    if( t1 ==0 && t2 == 2){
+        c.op = "=";
+        strcpy(c.arg1, "(double)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        return t;
+    }        
+    
+    if( t1 ==1 && t2 == 2) {
+        c.op = "=";
+        strcpy(c.arg1, "(double)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        return t;
+    }   
+    return NULL;         
 }
 
-/* Funcion encargada de tomar un numero flotante y guardarlo como expresion. */
-expresion numero_flotante(float num){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%.3f", num);
-	new_exp.type = 2;
-	new_exp.first = -1;
-	return new_exp;
+char *reducir(char *dir, int t1, int t2){
+    quad c;
+
+    char *t= (char*) malloc(32*sizeof(char));
+    
+    if( t1==t2) return dir;
+    if( t1 ==0 && t2 == 1){
+        c.op = "=";
+        strcpy(c.arg1, "(int)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        printf("perdida de información se esta asignando un float a un int\n");
+        return t;
+    }        
+    if( t1 ==0 && t2 == 2){
+        c.op = "=";
+        strcpy(c.arg1, "(int)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        printf("perdida de información se esta asignando un double a un int\n");
+        return t;
+    }        
+    
+    if( t1 ==1 && t2 == 2) {
+        c.op = "=";
+        strcpy(c.arg1, "(float)");
+        strcpy(c.arg2, dir);
+        strcpy(t, newTemp());
+        strcpy(c.res, t);
+        agregar_cuadrupla(&CODE, c.op,c.arg1,c.arg2,c.res);
+        printf("perdida de información se esta asignando un double a un float\n");
+        return t;
+    } 
+    return NULL;           
 }
 
-/* Funcion encargada de tomar un numero doble y guardarlo como expresion. */
-expresion numero_doble(double num){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%.3f", num);
-	new_exp.type = 3;
-	new_exp.first = -1;
-	return new_exp;
+char* newTemp(){
+	char *temporal= (char*) malloc(32*sizeof(char));
+	strcpy(temporal , "t");
+	char num[30];
+	sprintf(num, "%d", temp);
+	strcat(temporal, num);
+	temp++;
+	return temporal;
 }
 
-/* Funcion encargada de tomar un caracter y guardarlo como expresion. */
-expresion caracter(char c){
-	expresion new_exp;
-	sprintf(new_exp.dir, "%c", c);
-	new_exp.type = 4;
-	new_exp.first = -1;
-	return new_exp;
-}
 
 /* Funcion encargada de generar el codigo intermedio para una operacion relacional. */
 condition relacional(expresion e1, expresion e2, char* oprel){
@@ -487,23 +622,30 @@ condition relacional(expresion e1, expresion e2, char* oprel){
 	return c;
 }
 
-/* Funcion encargada de tomar un operacion OR y guardarla como condicion. */
-condition or(condition c1, condition c2){
-	condition c;
-	backpatch(c1.lfalse, c2.first);
-	c.ltrue = merge(c1.ltrue, c2.ltrue);
-	c.lfalse = c2.lfalse;
-	return c;
+char* newIndex(){
+	char *temporal= (char*) malloc(32*sizeof(char));
+	strcpy(temporal , "I");
+	char num[30];
+	sprintf(num, "%d", indice);
+	strcat(temporal, num);
+	indice++;
+	return temporal;
 }
 
-/* Funcion encargada de tomar un operacion AND y guardarla como condicion. */
-condition and(condition c1, condition c2){
-    condition c;
-    backpatch(c1.ltrue, c2.first);
-    c.ltrue= c2.ltrue;
-    c.lfalse = merge(c1.lfalse,c2.lfalse);
-    return c;
+label* newLabel(){
+	label *label_new = malloc(sizeof(label));
+	label_new->items = malloc(sizeof(int)*100);
+	label_new->i = label_c;
+	label_c++;
+	return label_new;
 }
+
+char* label_to_char(label l){
+	char *cad;
+	sprintf(cad,"%s%d","label",l.i);
+	return cad;
+}
+
 
 /* Funcion encargada de manejar los errores. */
 void yyerror(char *s){

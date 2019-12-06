@@ -4,15 +4,16 @@
 
 /* Estructura para el manejo de expresiones. */
 typedef struct _expresion{
-    char dir[10];
-    int type;
+    int dir;
+    char base[10];
+    int tipo;
     int first;
 } expresion;
 
 /* Estructura para el manejo de condicionales. */
 typedef struct _condition{
-    label ltrue;
-    label lfalse;  
+    label *ltrue;
+    label *lfalse;  
     int first;  
 } condition;
 
@@ -46,7 +47,7 @@ typedef struct _stack_dir{
 
 /* Estructura para el manejo de sentencias. */
 typedef struct _sentence{
-    label lnext;
+    label *lnext;
     int first;
 } sentence;
 

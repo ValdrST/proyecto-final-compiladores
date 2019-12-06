@@ -40,8 +40,8 @@ quad *crea_quad(char *op, char *arg1, char *arg2, char *res);
 code *crea_code();
 int gen_code(char *op, char *arg1, char *arg2, char *res);
 void agregar_cuadrupla(code *c, char *op, char *arg1, char *arg2, char *res);
-label create_list(int l);
-label merge(label l1, label l2);
+label* create_list(int l);
+label* merge(label *l1, label *l2);
 void backpatch(label l, int inst);
 void print_code();
 
