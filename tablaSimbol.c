@@ -83,8 +83,22 @@ symbol* crearSymbol(char *id, int tipo, int dir, char* tipoVar){
 }
 
 void addListParam(symtab* st, listParam *lp, char* id){
-    symbol *sym = buscar(st,id);
-    sym->params = lp;
+    if(st){
+        int posicion = 0;
+        if(st->root == NULL){
+            return; //La tabla esta vacia
+        }
+        symbol* simbolo_actual = st->root;
+        while (simbolo_actual != NULL){
+            posicion++;
+            if (strcmp(id, simbolo_actual->id) == 0){
+                simbolo_actual->params = lp;
+                return;
+            }else
+                simbolo_actual = simbolo_actual->next;
+        }
+  	}else
+  		printf("Error: la tabla de simbolos no existe\n");
 }
 
 /* Retorna un apuntador a una variable symtab,

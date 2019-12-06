@@ -140,7 +140,7 @@
 %left SINO
 
 /* Tipos */
-%type<tval> base tipo tipo_arreglo tipo_registro declaraciones
+%type<tval> base tipo tipo_arreglo tipo_registro declaraciones arg tipo_arg param_arr
 %type<sval> variable
 %type<args_list> argumentos lista_arg lista_param
 %type<eval> expresion
@@ -272,25 +272,47 @@ funciones: FUNC tipo ID PRA argumentos PRC INICIO
 	;
 
 /* A -> G | epsilon */
-argumentos:	lista_arg { $$ = $1; }
-	| SIN { $$.total = 0; }
+argumentos:	lista_arg { $$.lista = $1.lista; }
+	| SIN { $$.lista = NULL; }
 	;
 
 /* lista_arg -> lista_arg arg | arg */
-lista_arg:	lista_arg arg
-	| arg
+lista_arg:	lista_arg arg {
+		$$.lista = $1.lista;
+		add_tipo($$.lista,$2.tipo);
+	}
+	| arg {
+		$$.lista = crearLP();
+		add_tipo($$.lista,$1.tipo);
+	}
 	;
 
 /* arg -> tipo_arg id  */
-arg: tipo_arg ID
+arg: tipo_arg ID {
+		if(buscar(getCimaSym(StackTS),$2) == -1){
+			symbol *sym = crearSymbol($2, tipo_g, dir, "var");
+			insertar(getCimaSym(StackTS),sym);
+			dir = dir + getTam(getCimaType(StackTT),tipo_g);
+		}else{
+			yyerror("el identificador ya fue declarado");
+		}
+	}
 	;
 
 /* tipo_arg -> base param_arr | epsilon */
-tipo_arg: base param_arr | {}
-
+tipo_arg: base param_arr {
+	base.tipo = $1.tipo;
+	$$.tipo = $2.tipo;
+}
 
 /* param_arr -> [] param_arr | epsilon */
-param_arr: LCOR DCOR param_arr | {}
+param_arr: LCOR DCOR param_arr {
+		$$.tipo = insertarTipo(getCimaType(StackTT),crearTipoArray(6,"array",getTipoBase(getCimaType(StackTT),$3.tipo),$3.dim,-1));
+	}
+	| {
+		$$.tipo = base.tipo;
+		$$.dim = base.dim;
+	}
 
 
 /* sentencias->sentencias sentencia | sentencias */
