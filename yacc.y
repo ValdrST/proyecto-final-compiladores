@@ -85,7 +85,7 @@
 
 %union{
 	int line;
-	char* sval;
+	char sval[32];
 	ttype tval;
 	expresion eval;
 	num num;
@@ -100,10 +100,12 @@
 
 %token<sval> ID
 %token<num> NUM
+%token INICIO
+%token FIN
 %token ENT
 %token REAL
-%token CAR
 %token DREAL
+%token CAR
 %token SIN
 %token REGISTRO
 %token LLA
@@ -128,11 +130,11 @@
 %token TRUE
 %token FALSE
 %token ENTONCES
-%token WHAT
 %token LEER
 %token ESCRIBIR
 %token DCOR
 %token LCOR
+%token SL
 
 /* Presedencia y asociatividad de operadores */
 %left ASIG
@@ -143,7 +145,7 @@
 %left<sval> MAS MENOS
 %left<sval> PROD DIV MOD
 %left NOT
-%nonassoc PRA CTA PRC CTC INICIO FIN
+%nonassoc PRA CTA PRC CTC
 %left SI
 %left SINO
 
@@ -157,12 +159,13 @@
 %%
 
 /* programa -> declaraciones funciones */
-programa:{ 
+programa:declaraciones funciones {
 		label_c = 0;
 		indice = 0;
 		temp = 0;
 		stackDir = crearStackDir();
 		dir = 0;
+		
 		StackTT = crearTypeStack();
 		StackTS = crearSymStack();
 		tt_global = crearTypeTab();
@@ -170,7 +173,6 @@ programa:{
 		insertarTypeTab(StackTT,tt_global);
 		insertarSymTab(StackTS,ts_global);
 		StackCad = crearStackCad();
-	} declaraciones funciones {
 		//print_symbols_table(); 
 		//print_types_table(); 
 		//print_code();
@@ -180,13 +182,14 @@ programa:{
 
 /* declaraciones -> tipo lista_var declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
-declaraciones: tipo  lista_var declaraciones {tipo_g = $1.tipo;}
-	| tipo_registro  lista_var declaraciones {tipo_g = $1.tipo;}
+declaraciones: tipo {tipo_g = $1.tipo;} lista_var SL declaraciones 
+	| tipo_registro  lista_var SL 
+	declaraciones {tipo_g = $1.tipo;}
 	| {}
 	;
 
 /* tipo_registro -> registro inicio declaraciones fin */
-tipo_registro: REGISTRO INICIO declaraciones FIN{
+tipo_registro: REGISTRO SL INICIO declaraciones SL FIN{
 	typetab *tt = crearTypeTab();
 	symtab *ts = crearSymTab();
 	addStackDir(&stackDir,dir);
@@ -207,7 +210,7 @@ tipo: base tipo_arreglo{
 
 
 /* tipo -> int | float | double | char | void | REGISTRO INICIO declaraciones FIN */
-base: ENT {$$.tipo = 1; $$.dim = 4;}
+base: {printf("hello");} ENT {$$.tipo = 1; $$.dim = 4;}
 	| REAL {$$.tipo = 2; $$.dim = 8;}
 	| DREAL {$$.tipo = 3; $$.dim = 16;}
 	| CAR {$$.tipo = 4; $$.dim = 2;}
@@ -215,12 +218,12 @@ base: ENT {$$.tipo = 1; $$.dim = 4;}
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */
-tipo_arreglo:	CTA NUM CTC tipo_arreglo {
+tipo_arreglo: CTA NUM CTC tipo_arreglo {
 	if($2.tipo == 1 && $2.ival > 0){
 		$$.tipo =  insertarTipo(getCimaType(StackTT),crearTipoArray(6,"array",getTipoBase(getCimaType(StackTT),tipo_g),base.dim,$2.ival));
 	}
 	yyerror("El indice tiene que ser entero y mayor que cero\n");
-}
+	}
 	| {
 		$$ = base;
 	}
@@ -250,8 +253,8 @@ lista_var: 	lista_var COMA ID {
 
 
 /* func tipo id (argumentos) { declaraciones S } funciones | epsilon */
-funciones: FUNC tipo ID PRA argumentos PRC INICIO 
-	declaraciones {FuncReturn = false;} sentencias 
+funciones: FUNC tipo ID PRA argumentos PRC INICIO SL
+	declaraciones {FuncReturn = false;} sentencias SL 
 	FIN {
 		if(buscar(getFondoSym(StackTS),$3) != 1 ){
 			symbol *sym = crearSymbol($3, tipo_g, -1, "func");
@@ -264,7 +267,7 @@ funciones: FUNC tipo ID PRA argumentos PRC INICIO
 			dir = popStackDir(&stackDir);
 			agregar_cuadrupla(&CODE,"label","","",$3);
 			label *L = newLabel();			
-			backpatch(*L,$10.lnext->i);
+			backpatch(*L,$11.lnext->i);
 			agregar_cuadrupla(&CODE,"label","","",label_to_char(*L));
 			sacarSymTab(StackTS);
 			sacarTypeTab(StackTT);
@@ -277,7 +280,7 @@ funciones: FUNC tipo ID PRA argumentos PRC INICIO
 			yyerror("el identificador ya fue declarado");
 		}
 	}
-	funciones | {}
+	SL funciones | {}
 	;
 
 /* A -> G | epsilon */
@@ -325,10 +328,10 @@ param_arr: LCOR DCOR param_arr {
 
 
 /* sentencias->sentencias sentencia | sentencias */
-sentencias: sentencias sentencia {
+sentencias: sentencias SL sentencia {
 	label *L = newLabel();
 	backpatch(*L, $1.lnext->i);
-	$$.lnext = $2.lnext;
+	$$.lnext = $3.lnext;
 	}
 	| sentencia {$$.lnext = $1.lnext;
 	}
@@ -351,33 +354,33 @@ sentencias: sentencias sentencia {
 	segun (expresion)
 	casos predeterminado
 	fin|terminar */
-sentencia: 	SI expresion_booleana sentencias ENTONCES sentencias FIN {
+sentencia: 	SI expresion_booleana sentencias ENTONCES SL sentencias SL FIN {
 		label *L = newLabel();
 
 		backpatch(*L, $2.ltrue->i);
 		$$.lnext = merge($2.lfalse,$3.lnext);
 	}
-	| SI expresion_booleana sentencias SINO sentencias FIN {
+	| SI expresion_booleana sentencias SL SINO sentencias SL FIN {
 		label *L = newLabel();
 		label *L1 = newLabel();
 		backpatch(*L, $2.ltrue->i);
 		backpatch(*L1, $2.lfalse->i);
-		$$.lnext = merge($3.lnext,$5.lnext);
+		$$.lnext = merge($3.lnext,$6.lnext);
 	}
-	| MIENTRAS expresion_booleana HACER sentencias FIN {
+	| MIENTRAS SL expresion_booleana HACER SL sentencias SL FIN {
 		label *L = newLabel();
 		label *L1 = newLabel();
-		backpatch(*L, $4.lnext->i);
-		backpatch(*L1, $2.ltrue->i);
-		$$.lnext = $2.lfalse;
+		backpatch(*L, $6.lnext->i);
+		backpatch(*L1, $3.ltrue->i);
+		$$.lnext = $3.lfalse;
 		agregar_cuadrupla(&CODE,"goto","","",label_to_char(*L));
 	}
-	| HACER sentencias MIENTRAS_QUE expresion_booleana{
+	| HACER SL sentencias SL MIENTRAS_QUE expresion_booleana{
 		label *L = newLabel();
 		label *L1 = newLabel();
-		backpatch(*L, $4.ltrue->i);
-		backpatch(*L1, $2.lnext->i);
-		$$.lnext = $4.lfalse;
+		backpatch(*L, $6.ltrue->i);
+		backpatch(*L1, $3.lnext->i);
+		$$.lnext = $6.lfalse;
 		agregar_cuadrupla(&CODE,"goto","","",label_to_char(*L));
 	}
 	| ID ASIG expresion {
@@ -571,12 +574,10 @@ variable: arreglo {
 
 
 /* parte_arreglo -> id [ expresion ] arreglo | epsilon */
-arreglo: ID LCOR expresion DCOR {
-
+arreglo: ID LCOR expresion DCOR arreglo {
+	
 	} 
-	| arreglo LCOR expresion DCOR {
-
-	}
+	| {}
 	;
 
 /*parametros -> lista_param | epsilon*/

@@ -1,3 +1,8 @@
+func ent main() 
+inicio
+	devolver 1
+fin
+
 ent var_1,var_2
 real rvar_1
 dreal drvar_1
@@ -9,10 +14,7 @@ inicio
 	ent r2
 fin reg
 
-func ent main() 
-inicio
-	devolver 1
-fin
+
 
 func ent sum(ent x, ent y)
 inicio

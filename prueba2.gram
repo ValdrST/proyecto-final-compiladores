@@ -1,0 +1,8 @@
+ENT x
+ent y
+x + y
+func ent suma(ent x ent y) inicio
+    ent z
+    z := x + y
+    devolver z
+    fin
