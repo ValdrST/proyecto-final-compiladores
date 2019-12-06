@@ -64,6 +64,7 @@
 	char* newIndex();
 	char* newTemp();
 	char* label_to_char(label l);
+	void intToChar(char* out, int i); 
 	expresion operacion(expresion, expresion, char*);
 	expresion numero_entero(int);
 	expresion numero_flotante(float);
@@ -152,8 +153,7 @@
 /* Tipos */
 %type<tval> base tipo tipo_arreglo  tipo_registro declaraciones arg tipo_arg param_arr
 %type<args_list> argumentos lista_arg lista_param parametros
-%type<eval> expresion
-%type<vval> variable arreglo
+%type<eval> expresion arreglo variable
 %type<cond> expresion_booleana relacional
 %type<sent> sentencias sentencia
 %%
@@ -574,10 +574,60 @@ variable: arreglo {
 
 
 /* parte_arreglo -> id [ expresion ] arreglo | epsilon */
-arreglo: ID LCOR expresion DCOR arreglo {
+arreglo: ID LCOR expresion DCOR {
+	if(buscar(getCimaSym(StackTS),$1) != -1){
+		int t = getTipo(getCimaSym(StackTS),$1); 
+		if (strcmp(getNombre(getCimaType(StackTT),t),"array") == 0){
+			if ($3.tipo == 1){
+				strcpy($$.base,$1);
+				$$.tipo = getTipoBase(getCimaType(StackTT),t)->t.type;
+				$$.tam = getTam(getCimaType(StackTT),$$.tipo);
+				$$.dir = atoi(newTemp());
+				char tm[10];
+				intToChar(tm,$$.tam);
+				char dr[10];
+				intToChar(dr,$$.dir);
+				char dre[10];
+				intToChar(dre,$3.dir);
+				agregar_cuadrupla(&CODE,"*",dre,tm,dr);
+
+				} else{
+					yyerror("La expresion para un indice debe ser entero");
+				}
+				}else{
+				yyerror("El identificador debe ser un arreglo");
+			}
 	
+		}else{
+			yyerror("El Identificador no ha sido declarado");
+		}
 	} 
-	| {}
+	| arreglo LCOR expresion DCOR  {
+		if(strcmp(getNombre(getCimaType(StackTT),$1.tipo),"array") == 0 ){
+			if ($3.tipo == 1){
+				strcpy($$.base,$1.base);
+				$$.tipo = getTipoBase(getCimaType(StackTT),$1.tipo)->t.type;
+				$$.tam = getTam(getCimaType(StackTT),$$.tipo);
+				int temp_1 = atoi(newTemp());
+				$$.dir = atoi(newTemp());
+				char t[10];
+				sprintf(t,"%d",temp_1);
+				char tm[10];
+				sprintf(tm,"%d",$$.tam);
+				char d2[10];
+				sprintf(d2,"%d",$1.dir);
+				agregar_cuadrupla(&CODE,"*",d2,tm,t);
+				char d[10];
+				sprintf(d,"%d",$$.dir);
+				sprintf(d2,"%d",$1.dir);
+				agregar_cuadrupla(&CODE,"+",d2,t,d);
+			}else{
+				yyerror("La expresion para un indice debe ser entero");
+			}
+		}else{
+			yyerror("El arreglo no tiene tantas dimentsiones");
+		}
+	}
 	;
 
 /*parametros -> lista_param | epsilon*/
@@ -715,6 +765,9 @@ char* newTemp(){
 	return temporal;
 }
 
+void intToChar(char* out, int i){
+	sprintf(out,"%d",i);
+}
 
 /* Funcion encargada de generar el codigo intermedio para una operacion relacional. */
 condition relacional(condition e1, condition e2, char* oprel){

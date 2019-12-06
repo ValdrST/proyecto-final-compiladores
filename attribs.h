@@ -7,7 +7,7 @@ typedef struct _expresion{
     int dir;
     char base[10];
     int tipo;
-    int first;
+    int tam;
 } expresion;
 
 /* Estructura para el manejo de condicionales. */

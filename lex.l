@@ -128,9 +128,11 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 {id} { yylval.line = yylineno;printf("chinga tu madre");sprintf(yylval.sval,"%s",yytext);return ID;}
 
+"\n" {return SL;}
+
 [ \n\t\r]+	{}
 
-"\n" {return SL;}
+
 
 "/*"				{ BEGIN(com1); }
 
