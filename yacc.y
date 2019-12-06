@@ -90,6 +90,7 @@
 	expresion eval;
 	num num;
 	car car;
+	var vval;
 	args_list args_list;
 	condition cond;
 	sentence sent;
@@ -147,9 +148,10 @@
 %left SINO
 
 /* Tipos */
-%type<tval> base tipo tipo_arreglo tipo_registro declaraciones arg tipo_arg param_arr
+%type<tval> base tipo tipo_arreglo  tipo_registro declaraciones arg tipo_arg param_arr
 %type<args_list> argumentos lista_arg lista_param parametros
-%type<eval> expresion variable
+%type<eval> expresion
+%type<vval> variable arreglo
 %type<cond> expresion_booleana relacional
 %type<sent> sentencias sentencia
 %%
@@ -537,32 +539,71 @@ expresion: expresion MAS expresion {$$ = operacion($1,$3,$2);}
 				for(int i=0; i<getNumListParam($3.lista);i++){
 					if(p->tipo != pl->tipo){
 						yyerror("El tipo de los parametros no coincide");
-					}
+					}p = p->next;
+					pl = pl->next;
 				}
+				$$.dir = atoi(newTemp());
+				$$.tipo = getTipo(getFondoSym(StackTS),$1);
+				char *d;
+				sprintf(d,"%d",$$.dir);
+				agregar_cuadrupla(&CODE,"=","call",$1,d);
 			}
 		}
 	}
 	;
 
 /* variable -> id | parte_arreglo | id . id */
-variable: ID arreglo
-	| ID PT ID 
+variable: arreglo {
+	$$.dir = $1.dir;
+	$$.base[0] = $1.base[0];
+	$$.tipo = $1.tipo;
+}
+	| ID PT ID {
+		if(buscar(getFondoSym(StackTS),$1)!=-1){
+			int t = getTipo(getFondoSym(StackTS),$1);
+			char *t1 = getNombre(getFondoType(StackTT),t);
+			if (strcmp(t1,"registro") == 0 ){
+				tipoBase *tb = getTipoBase(getFondoType(StackTT),t);
+			}
+		}
+	}
 	;
 
 
 /* parte_arreglo -> id [ expresion ] arreglo | epsilon */
-arreglo: ID LCOR expresion DCOR arreglo  
-	| {}
+arreglo: ID LCOR expresion DCOR {
+
+	} 
+	| arreglo LCOR expresion DCOR {
+
+	}
 	;
 
 /*parametros -> lista_param | epsilon*/
-parametros: lista_param 
-	|
+parametros: lista_param {
+		$$.lista = $1.lista;
+	}
+	| {
+		$$.lista = NULL;
+	}
 	;
 
 /* lista_param -> lista_param, expresion | expresion */
-lista_param:	lista_param COMA expresion 
-	| expresion
+lista_param: lista_param COMA expresion 
+	{
+		$$.lista = $1.lista;
+		add_tipo($$.lista,$3.tipo);
+		char *d;
+		sprintf(d,"%d",$3.dir);
+		agregar_cuadrupla(&CODE,"param",d,"","");
+	}
+	| expresion {
+		$$.lista = crearLP();
+		add_tipo($$.lista,$1.tipo);
+		char *d;
+		sprintf(d,"%d",$1.dir);
+		agregar_cuadrupla(&CODE,"param",d,"","");
+	}
 	;
 
 

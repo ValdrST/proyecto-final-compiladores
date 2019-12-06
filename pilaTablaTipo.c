@@ -34,6 +34,10 @@ typetab* getCimaType(typestack *ptt){
     return aux;
 }
 
+typetab* getFondoType(typestack *ptt){
+    return ptt->root;
+}
+
 void insertarTypeTab(typestack *ptt, typetab *type_tab){
     if(ptt){    //Si existe la pila
         if (ptt->root == NULL){     //La pila esta vacia

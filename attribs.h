@@ -27,6 +27,13 @@ typedef struct _num{
     float fval;
 } num;
 
+typedef struct _var{
+    int tipo;
+    int dir;
+    int base[10];
+    int tam;
+}var;
+
 typedef struct _car{
     int tipo;
     char cval;
@@ -35,6 +42,7 @@ typedef struct _car{
 typedef struct _ttype{
     int tipo;
     int dim;
+    int base;
 }ttype;
 
 typedef struct _stack_cad{
