@@ -30,12 +30,18 @@ void borrarTypeStack(typestack *ptt){
 }
 
 typetab* getCimaType(typestack *ptt){
-    typetab *aux = (ptt->root+ptt->num-1);
+    typetab *aux = ptt->root;
     return aux;
 }
 
 typetab* getFondoType(typestack *ptt){
-    return ptt->root;
+    typetab *aux = ptt->root;
+    typetab *aux_next = ptt->root->next;
+    while(aux_next != NULL){
+        aux = aux_next;
+        aux_next = aux->next;
+    }
+        return aux;
 }
 
 void insertarTypeTab(typestack *ptt, typetab *type_tab){
@@ -44,8 +50,7 @@ void insertarTypeTab(typestack *ptt, typetab *type_tab){
             ptt->root = type_tab;
         }else{                      //La pila no esta vacia
             typetab *aux = getCimaType(ptt);
-            type_tab->next = aux;
-            ptt->root = type_tab;
+            aux->next = type_tab;
         }
         ptt->num++;
     }else{

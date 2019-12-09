@@ -30,12 +30,18 @@ void borrarSymStack(symstack *pts){
 }
 
 symtab* getCimaSym(symstack *pts){
-    symtab *aux = (pts->root+(pts->num-1));
+    symtab *aux = pts->root;
     return aux;
 }
 
 symtab* getFondoSym(symstack *pts){
-    return pts->root;
+    symtab *aux = pts->root;
+    symtab *aux_next = pts->root->next;
+    while(aux_next != NULL){
+        aux = aux_next;
+        aux_next = aux->next;
+    }
+        return aux;
 }
 
 void insertarSymTab(symstack *pts, symtab *sym_tab){
@@ -44,8 +50,7 @@ void insertarSymTab(symstack *pts, symtab *sym_tab){
             pts->root = sym_tab;
         }else{                      //La pila no esta vacia
             symtab *aux = getCimaSym(pts);
-            sym_tab->next = aux;
-            pts->root = sym_tab;
+            aux->next = sym_tab;
         }
         pts->num++;
     }else{

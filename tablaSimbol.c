@@ -272,7 +272,7 @@ int getNumParam(symtab *st, char *id){
 
 void getParams(char *paramsS,param *p){
     while(p){
-        char tipo[10];
+        char tipo[100];
         sprintf(tipo, " %d", p->tipo);
         strcat(paramsS,tipo);
         p = p->next;
@@ -280,20 +280,30 @@ void getParams(char *paramsS,param *p){
 }
 // Imprime la tabla de simbolos
 void printTablaSimbolos(symtab *st){
-    symbol *s_next;
-    char * id;
-    if(st!=NULL)
-    do{
-        if(st->root != NULL){
-            id = st->root->id;
-            char _params_[100];
-            getParams(_params_,st->root->params->root);
-            printf("id: %d dir: %d tipo: $d tipoVar: %d params: %s\n",st->root->id,getDir(st,id),getTipo(st,id),getTipoVar(st,id),_params_);
-            s_next = st->root->next;
+    int simbolos = 1;
+    int num_params;
+    symbol* simbolo_actual = st->root;
+    listParam* lista;
+    param* param_actual;
+
+    printf("###TABLA DE SIMBOLOS###\n");
+    printf("NUM ID TIPO DIR TipoVar Params\n");
+    while(simbolos != (st->num)+1){ 
+        char tipoVar_v[100];
+        if(getTipoVar(st, simbolo_actual->id) == NULL){
+            strcpy(tipoVar_v,"Nulo");
+        }else{
+            strcpy(tipoVar_v,getTipoVar(st, simbolo_actual->id));
         }
-    }while(s_next != NULL);
-    else{
-        printf("No hay simbolos en la tabla\n");
+        printf("%d %s %d %d %s %d %d %d ",simbolos,simbolo_actual->id,getTipo(st, simbolo_actual->id),getDir(st, simbolo_actual->id),tipoVar_v);
+        lista = getListParam(st, simbolo_actual->id);
+        param_actual = lista->root;
+        while(param_actual != NULL){
+            printf("%d, ",param_actual->tipo);
+            param_actual = param_actual->next;
+            }
+        printf("\n");
+        simbolo_actual = simbolo_actual->next;
+        simbolos++;
     }
-    
 }

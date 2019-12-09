@@ -1,9 +1,8 @@
-func dreal suma ( real x ) 
+
+func ent suma(ent x  ent y) 
 inicio
     ent z
-    //z :=x+y
-    devolver z fin
-func sin main() inicio
-    devolver
-    fin
-z:=x + y
+    z := x + y
+    devolver z
+fin
+

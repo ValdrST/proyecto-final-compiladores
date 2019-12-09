@@ -171,19 +171,19 @@ programa:{
 		insertarTypeTab(StackTT,tt_global);
 		insertarSymTab(StackTS,ts_global);
 		StackCad = crearStackCad();
-	} declaraciones SL funciones 
+	} declaraciones funciones 
 	;
 
 
 /* declaraciones -> tipo lista_var \n declaraciones 
 	| tipo_registro lista_var declaraciones | epsilon */
-declaraciones: tipo {tipo_g = $1.tipo;} lista_var SL declaraciones 
-	| tipo_registro {tipo_g = $1.tipo;} lista_var SL declaraciones 
+declaraciones: tipo {tipo_g = $1.tipo;} lista_var declaraciones 
+	| tipo_registro {tipo_g = $1.tipo;} lista_var declaraciones 
 	| {}
 	;
 
 /* tipo_registro -> registro inicio declaraciones fin */
-tipo_registro: REGISTRO SL INICIO declaraciones SL FIN{
+tipo_registro: REGISTRO INICIO declaraciones FIN {
 	typetab *tt = crearTypeTab();
 	symtab *ts = crearSymTab();
 	addStackDir(&stackDir,dir);
@@ -197,7 +197,8 @@ tipo_registro: REGISTRO SL INICIO declaraciones SL FIN{
 	dir = popStackDir(&stackDir);
 	$$.tipo = insertarTipo(getCimaType(StackTT),crearTipoNativo(id_tipo,"registro",crearArqueTipo(true,crearTipoStruct(ts1)),-1));
 	id_tipo++;
-	};
+	}
+	;
 	
 
 tipo: base {base = $1;} tipo_arreglo{$$ = $3;};
@@ -207,6 +208,7 @@ base: SIN {$$.tipo = 0; $$.dim = 0;}
 	| REAL {$$.tipo = 2; $$.dim = 8;}
 	| DREAL {$$.tipo = 3; $$.dim = 16;}
 	| CAR {$$.tipo = 4; $$.dim = 2;}
+	;
 
 
 /* tipo_arreglo -> [num] tipo_arreglo | epsilon */
@@ -255,7 +257,7 @@ funciones: FUNC tipo ID {
 	} else{
 		yyerror("el identificador ya fue declarado");
 	}
-} PRA argumentos PRC SL INICIO declaraciones {FuncReturn = false;} sentencias SL 
+} PRA argumentos PRC INICIO declaraciones {FuncReturn = false;} sentencias
 	FIN {
 			insertarSymTab(StackTS,ts_global);
 			insertarTypeTab(StackTT,tt_global);
@@ -272,7 +274,7 @@ funciones: FUNC tipo ID {
 				yyerror("La funcion no tiene valor de retorno");
 			}
 	}
-	SL funciones | {}
+	funciones | {}
 	;
 
 argumentos:	lista_arg { $$.lista = $1.lista; }

@@ -2,6 +2,28 @@
 #include <stdio.h>
 #include <string.h>
 #include "tablaTipo.h"
+
+
+type *crearTipo(char* nombre, int dim, int tipo, int numElem, bool est,symtab *estructura){
+    type* nuevo_type = malloc(sizeof(type));
+    if(nuevo_type){
+        //El id se agrega al momento de insertar a la tabla de tipos 
+        strcpy(nuevo_type->nombre, nombre);
+        nuevo_type->tb.t.type = tipo;
+        nuevo_type->tb.est = est;
+        if(est == true){
+            nuevo_type->tb.t.estructura = estructura;
+        }
+        nuevo_type->numElem = numElem;
+        nuevo_type->tamBytes = dim * numElem;
+        //El espacio en bytes se agrega al momento de insertar a la tabla de tipos
+        return nuevo_type;
+    }else{
+        printf("No hay memoria disponible");
+        return NULL;
+    }
+    return nuevo_type;
+}
 //Crea e inicialia una tabla de tipos
 tipo *crearTipoPrimitivo(int id){
     tipo* base_type = malloc(sizeof(tipo));

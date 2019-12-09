@@ -37,7 +37,7 @@ tipo *crearTipoStruct(symtab* estructura);
 tipoBase *crearArqueTipo(bool is_struct, tipo* base_type);
 type *crearTipoArray(int id, char* nombre, tipoBase* tb, int size, int num_elem);
 type *crearTipoNativo(int id, char* nombre, tipoBase* tb, int size);
-
+type *crearTipo(char* nombre, int dim, int tipo, int numElem, bool est,symtab *estructura);
 /* Borra type, libera memoria */
 void borrarType(type *t);
 

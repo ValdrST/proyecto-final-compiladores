@@ -1,7 +1,7 @@
-#include "intermediate_code.h"
 #include <stdio.h>
 #include <stdlib.h>
-
+#include "intermediate_code.h"
+#include "cMips.h"
 /* Funcion encargada de inicializar la tabla de cuadruplas. */
 void init_code(){
 	CODE = *crea_code();
@@ -33,9 +33,10 @@ void agregar_cuadrupla(code* c, char *op, char* arg1, char *arg2, char* res){
 		c->root = q;
 	else{
 		q_temp = c->root;
-		while(q_temp->next == NULL)
+		while(q_temp->next != NULL)
 			q_temp = q_temp->next;
 		q_temp->next = q;
+		q->next = NULL;
 	}
 	c->num_instrucciones++;
 }
@@ -83,12 +84,17 @@ label *merge(label *l1, label *l2){
 }
 
 /* Funcion encargada de cambiar la localizacion donde se almacenara el resultado. */
-void backpatch(label l, int inst){
-	char* res = malloc(sizeof(char) * 100);
-	for(int i = 0; i < l.i ; i++){
-		sprintf(res, "%d", inst);
-		(CODE.root[l.items[i]]).res = res;
+void backpatch(label *l, label *l2){
+	char res[100];
+	int inst;
+	if(l2){
+		inst = l2->i;
+		for(int i = 0; i < l->i ; i++){
+			sprintf(res, "%d", inst);
+			(CODE.root[l->items[i]]).res = res;
+		}
 	}
+	
 }
 void concat_code(code *c1,code *c2){
 	printf("kekekekkee");
@@ -99,10 +105,21 @@ void concat_code(code *c1,code *c2){
 }
 
 /* Funcion que imprime las cuadruplas. */
-void print_code(code c){
+void print_code(code *c){
     printf("\n*** CODIGO INTERMEDIO ***\n");
     printf("inst\top\targ1\targ2\tres\n");
-    for(int i = 0; i < c.num_instrucciones; i++){
-        printf("%d\t%s\t%s\t%s\t%s\n",i, c.root[i].op, c.root[i].arg1, c.root[i].arg2, c.root[i].res);
-    }
+	printf("%d\t%s\t%s\t%s\t%s\n",0, c->root->op, c->root->arg1, c->root->arg2, c->root->res);
+	quad *q = c->root->next;
+	int i = 1;
+	FILE *arch1, *arch2;
+	arch1 = fopen("out.s","w");
+	arch2 = fopen("ascii.s","w");
+	while(q != NULL){
+		printf("%i\t%s\t%s\t%s\t%s\n",i, q->op, q->arg1, q->arg2, q->res);
+		genCod(q->res,q->op,q->arg1,q->arg2,arch1,arch2,i);
+		q = q->next;
+		i++;
+	}
+	fclose(arch1);
+	fclose(arch2);
 }

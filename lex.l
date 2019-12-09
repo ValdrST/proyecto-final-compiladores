@@ -3,7 +3,7 @@
 	#include <stdio.h>
 	#include <string.h>
 	#include <stdlib.h>
-	#include "yacc.tab.h"
+	#include "yacc_p.tab.h"
 
 %}
 
@@ -115,9 +115,9 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "%"	{ yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext); return MOD; }
 
-"(" {yylval.line = yylineno;return PRA;}
+"(" {yylval.line = yylineno;return RPAR; }
 
-")" {yylval.line = yylineno;return PRC;}
+")" {yylval.line = yylineno;return LPAR;}
 
 ":="   {yylval.line = yylineno;return ASIG;}
 
@@ -125,7 +125,7 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "[" {yylval.line = yylineno;return LCOR;}
 
-"]" {yylval.line = yylineno;return DCOR;}
+"]" {yylval.line = yylineno;return RCOR;}
 
 "." {yylval.line = yylineno;return PT;}
 
@@ -143,9 +143,7 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 {id} { yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext);return ID;}
 
-"\n" {yylval.line = yylineno; return SL;}
-
-[ \n\t\r]	{}
+[ \n\t\r]+	{}
 
 
 

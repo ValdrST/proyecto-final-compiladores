@@ -2,6 +2,7 @@
 #define INTERMEDIATE_CODE_H
 
 #include <string.h>
+#include "cMips.h"
 typedef struct _quad quad;
 /* Estructura de una cuadrupla. */
 // op - Operacion que se va a realizar.
@@ -42,7 +43,7 @@ int gen_code(char *op, char *arg1, char *arg2, char *res);
 void agregar_cuadrupla(code *c, char *op, char *arg1, char *arg2, char *res);
 label* create_list(int l);
 label* merge(label *l1, label *l2);
-void backpatch(label l, int inst);
-void print_code();
+void backpatch(label *l, label *l2);
+void print_code(code *c);
 
 #endif
