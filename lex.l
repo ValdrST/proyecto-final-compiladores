@@ -11,11 +11,11 @@
 %option yylineno
 
 
-digito [0-9]
-ent_def {digito}+
-exp [Ee][+-]?{digito}
+digito [0-9]+
+ent_def [+-]?{digito}
+exp [Ee][+-]?{digito}+
 real_def ({digito}.?{digito}{exp}|{digito}?.{digito}{exp}?|{digito}.{digito}?{exp}?)[Ff]
-dreal_def {digito}.?{digito}{exp}|{digito}?.{digito}{exp}?|{digito}.{digito}?{exp}?
+dreal_def ({digito}.?{digito}{exp}|{digito}?.{digito}{exp}?|{digito}.{digito}?{exp}?)[dD]
 letra [a-zA-Z]
 id (_|{letra})((_|{letra}|{digito})){0,31}
 
@@ -115,9 +115,9 @@ falso [Ff][Aa][Ll][Ss][Oo]
 
 "%"	{ yylval.line = yylineno; sprintf(yylval.sval,"%s",yytext); return MOD; }
 
-"(" {yylval.line = yylineno;return RPAR; }
+"(" {yylval.line = yylineno;return LPAR; }
 
-")" {yylval.line = yylineno;return LPAR;}
+")" {yylval.line = yylineno;return RPAR;}
 
 ":="   {yylval.line = yylineno;return ASIG;}
 

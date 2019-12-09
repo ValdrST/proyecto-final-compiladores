@@ -89,15 +89,19 @@ void backpatch(label *l, label *l2){
 	int inst;
 	if(l2){
 		inst = l2->i;
-		for(int i = 0; i < l->i ; i++){
-			sprintf(res, "%d", inst);
-			(CODE.root[l->items[i]]).res = res;
-		}
+	}else{
+		inst = -1;
+	}
+	quad *q = CODE.root;
+	for(int i = 0; i < l->i ; i++){
+		sprintf(res, "%d", inst);
+		strcpy((CODE.root[l->items[i]]).res, res);
 	}
 	
 }
+
+
 void concat_code(code *c1,code *c2){
-	printf("kekekekkee");
 	printf("%d",c2->num_instrucciones);
 	for(int i = 0; i<c2->num_instrucciones; i++){
 		agregar_cuadrupla(c1,c2->root[i].op,c2->root[i].arg1,c2->root[i].arg2,c2->root[i].res);
@@ -109,13 +113,13 @@ void print_code(code *c){
     printf("\n*** CODIGO INTERMEDIO ***\n");
     printf("inst\top\targ1\targ2\tres\n");
 	printf("%d\t%s\t%s\t%s\t%s\n",0, c->root->op, c->root->arg1, c->root->arg2, c->root->res);
-	quad *q = c->root->next;
 	int i = 1;
 	FILE *arch1, *arch2;
 	arch1 = fopen("out.s","w");
 	arch2 = fopen("ascii.s","w");
+	quad *q = c->root->next;
 	while(q != NULL){
-		printf("%i\t%s\t%s\t%s\t%s\n",i, q->op, q->arg1, q->arg2, q->res);
+		printf("%d\t%s\t%s\t%s\t%s\n",i, q->op, q->arg1, q->arg2, q->res);
 		genCod(q->res,q->op,q->arg1,q->arg2,arch1,arch2,i);
 		q = q->next;
 		i++;

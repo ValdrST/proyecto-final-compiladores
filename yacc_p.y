@@ -166,12 +166,14 @@ programa: {
 		insertarSymTab(StackTS,ts_global);
 		StackCad = crearStackCad();
 	} declaraciones  funciones {
+		printPilaSym(StackTS);
+		printPilaType(StackTT);
 		print_code(&CODE);
 	};
 
 declaraciones:
   tipo {tipo_g = $1.tipo;} lista_var  declaraciones
-| tipo_registro {tipo_g = $1.tipo;} lista_var  declaraciones
+| tipo_registro {tipo_g = $1.tipo;} lista_var declaraciones
 | /*epsilon*/ {};
 
 tipo_registro:
@@ -201,13 +203,12 @@ base:
 	;
 
 tipo_arreglo:
-  RCOR NUM LCOR tipo_arreglo {
-	if($2.tipo == 1 && $2.ival > 0){
-		$4.tipo;
+  LCOR NUM RCOR tipo_arreglo{
+	if($2.tipo == 1 && $2.ival >= 1){
 		$$.tipo = insertarTipo(getCimaType(StackTT),crearTipo("array",$4.dim,$4.tipo,$2.ival, false,NULL));
 	}
-	yyerror("El indice tiene que ser entero y mayor que cero\n");
-	}
+	yyerror("El indice tiene que ser entero y mayor que cero");
+	} 
 | {
 		$$ = base;
 	}
@@ -216,6 +217,7 @@ tipo_arreglo:
 lista_var:
   lista_var COMA ID {
 	if(buscar(getCimaSym(StackTS),$3) == -1){
+		
 		symbol *sym = crearSymbol($3, tipo_g, dir, "var");
 		insertar(getCimaSym(StackTS),sym);
 		dir = dir + getTam(getCimaType(StackTT),tipo_g);
@@ -245,24 +247,25 @@ funciones:
 	} else{
 		yyerror("el identificador ya fue declarado");
 	}
-} RPAR argumentos LPAR INICIO  declaraciones {FuncReturn = false;} sentencias {
-			insertarSymTab(StackTS,ts_global);
-			insertarTypeTab(StackTT,tt_global);
-			dir = popStackDir(&stackDir);
-			agregar_cuadrupla(&CODE,"label","","",$3);
-			label *L = newLabel();
-			backpatch(L,$11.lnext);
-			char lchar[50];
-			label_to_char(lchar,*L);
-			agregar_cuadrupla(&CODE,"label","","",lchar);
-			sacarSymTab(StackTS);
-			sacarTypeTab(StackTT);
-			dir = popStackDir(&stackDir);
-			addListParam(getCimaSym(StackTS),$6.lista,$3);
-			if($2.tipo != 0 && FuncReturn == false){
-				yyerror("La funcion no tiene valor de retorno");
-			}
-	} FIN  funciones 
+} LPAR argumentos{addListParam(getCimaSym(StackTS),$6.lista,$3);} RPAR INICIO  declaraciones {FuncReturn = false;} sentencias FIN funciones {
+	{
+		insertarSymTab(StackTS,ts_global);
+		insertarTypeTab(StackTT,tt_global);
+		dir = popStackDir(&stackDir);
+		agregar_cuadrupla(&CODE,"label","","",$3);
+		label *L = newLabel();
+		backpatch(L,$12.lnext);
+		char lchar[50];
+		label_to_char(lchar,*L);
+		agregar_cuadrupla(&CODE,"label","","",lchar);
+		sacarSymTab(StackTS);
+		sacarTypeTab(StackTT);
+		dir = popStackDir(&stackDir);
+		if($2.tipo != 0 && FuncReturn == false){
+			yyerror("La funcion no tiene valor de retorno");
+		}
+	}
+}
 	| /*epsilon*/ {};
 
 argumentos:
@@ -282,9 +285,9 @@ lista_arg:
 arg:
   tipo_arg ID {
 		if(buscar(getCimaSym(StackTS),$2) == -1){
-			symbol *sym = crearSymbol($2, tipo_g, dir, "var");
+			symbol *sym = crearSymbol($2, base.tipo, dir, "var");
 			insertar(getCimaSym(StackTS),sym);
-			dir = dir + getTam(getCimaType(StackTT),tipo_g);
+			dir = dir + getTam(getCimaType(StackTT),base.tipo);
 		}else{
 			yyerror("el identificador ya fue declarado");
 		}
@@ -355,9 +358,13 @@ sentencia:
 			char di[50];
 			sprintf(di,"%d",$3.dir);
 			char *alfa = reducir(di,$3.tipo,t);
-			char res[50];
-			sprintf(res,"%s%d","id",d);
-			agregar_cuadrupla(&CODE,"=",alfa,"",res); 
+			char res[100];
+			sprintf(res,"%s %d","Id",d);
+			if(alfa != NULL){
+				agregar_cuadrupla(&CODE,"=",alfa,"",res); 
+			}else{
+				agregar_cuadrupla(&CODE,"=","0","",res);
+			}
 			$$.lnext = NULL;
 		}else{
 			yyerror("Variable no declarada");
@@ -373,13 +380,13 @@ sentencia:
 		$$.lnext = NULL;
 	}
 	| ESCRIBIR expresion {
-		char *d;
+		char d[100];
 		sprintf(d,"%d",$2.dir);
 		agregar_cuadrupla(&CODE,"print",d,"","");
 		$$.lnext = NULL;
 	}
 	| LEER variable {
-		char *d;
+		char d[100];
 		sprintf(d,"%d",$2.dir);
 		agregar_cuadrupla(&CODE,"scan",d,"",d);
 		$$.lnext = NULL;
@@ -396,7 +403,6 @@ sentencia:
 		if ( FuncType != 0 ){
 			char d[10];
 			sprintf(d,"%d",$2.dir);
-			
 			char *alfa = reducir(d,$2.tipo,FuncType);
 			sprintf(d,"%d",$2.dir);
 			agregar_cuadrupla(&CODE,"return",d,"","");
@@ -483,8 +489,6 @@ expresion:
 		agregar_cuadrupla(&CODE, "*",b,"",d);
 	}
 	| NUM {
-		printf("E->NUM --%d--",$1.tipo);
-		
 		$$.tipo = $1.tipo;
 		if($1.tipo == 1)
 			$$.dir = $1.ival;
@@ -492,7 +496,6 @@ expresion:
 			$$.dir = $1.fval;
 		if($1.tipo == 3)
 			$$.dir = $1.dval;
-		printf("E->NUM --%d--",$$.dir);
 	}
 	| CADENA {
 		$$.tipo = 7;
@@ -524,16 +527,20 @@ expresion:
 				sprintf(d,"%d",$$.dir);
 				agregar_cuadrupla(&CODE,"=","call",$1,d);
 			}
+		}else{
+			yyerror("El identificador no ha sido declarado");
 		}
 	}
 	;
 
 variable:
-	ID {		
+	ID {
 		if(buscar(getCimaSym(StackTS),$1)!=-1){
 			$$.dir = getDir(getCimaSym(StackTS),$1);
 			$$.tipo = getTipo(getCimaSym(StackTS),$1);
-			strcpy($$.base,$1);
+			strcpy($$.base,"");
+		}else{
+			yyerror("variable ya definida");
 		}
 	}
 	| arreglo {
@@ -639,6 +646,7 @@ lista_param:
    mayor rango, e.o.c manda un mensaje de error. 
    void = 0, int = 1, float = 2, double = 3, char = 4, struct = 5*/
 int max(int t1, int t2){
+
 	if(t1 == t2) return t1;
 	else if (t1 == 1 && t2 == 2) return t1;
 	else if (t1 == 2 && t2 == 1) return t2;
@@ -653,9 +661,9 @@ int max(int t1, int t2){
 
 char *ampliar(char *dir, int t1, int t2){
     quad c;
-    char *t= (char*) malloc(32*sizeof(char));
-    
-    if( t1==t2) return dir;
+    char *t= (char*) malloc(100*sizeof(char));
+    if( t1==t2) {
+		return dir;}
     if( t1 ==1 && t2 == 2){
         c.op = "=";
         strcpy(c.arg1, "(float)");
@@ -689,9 +697,7 @@ char *ampliar(char *dir, int t1, int t2){
 
 char *reducir(char *dir, int t1, int t2){
     quad c;
-
     char *t= (char*) malloc(32*sizeof(char));
-    
     if( t1==t2) return dir;
     if( t1 ==1 && t2 == 2){
         c.op = "=";
@@ -713,7 +719,6 @@ char *reducir(char *dir, int t1, int t2){
         printf("perdida de información se esta asignando un double a un int En la linea: %d\n",yylineno);
         return t;
     }        
-    
     if( t1 ==2 && t2 == 3) {
         c.op = "=";
         strcpy(c.arg1, "(float)");
@@ -761,7 +766,6 @@ condition relacional(condition e1, condition e2, char* oprel){
 
 expresion operacion(expresion e1, expresion e2, char* op){
 	expresion e;
-	printf("%d %d",e1.tipo,e2.tipo);
 	e.tipo = max(e1.tipo,e2.tipo);
 	e.dir = atoi(newTemp());
 	char d[50];
@@ -786,8 +790,8 @@ char* newIndex(){
 label* newLabel(){
 	label *label_new = malloc(sizeof(label));
 	label_new->items = malloc(sizeof(int)*100);
-	label_new->i = label_c;
 	label_c++;
+	label_new->i = label_c;
 	return label_new;
 }
 

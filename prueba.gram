@@ -1,4 +1,4 @@
-func ent main() 
+func ent main(sin) 
 inicio
 	devolver 1
 fin
@@ -7,14 +7,6 @@ ent var_1,var_2
 real rvar_1
 dreal drvar_1
 car letra
-
-registro
-inicio
-	ent r1
-	ent r2
-fin reg
-
-
 
 func ent sum(ent x, ent y)
 inicio

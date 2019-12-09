@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include "cMips.h"
+#include "intermediate_code.h"
 typedef struct _quad quad;
 /* Estructura de una cuadrupla. */
 // op - Operacion que se va a realizar.
@@ -26,9 +27,11 @@ typedef struct _code {
 } code;
 
 typedef struct _label {
+  struct _label* next;
   int *items;
   int i;
 } label;
+
 
 /* Codigo siendo atributo global. */
 code CODE;
@@ -45,5 +48,5 @@ label* create_list(int l);
 label* merge(label *l1, label *l2);
 void backpatch(label *l, label *l2);
 void print_code(code *c);
-
+label* newLabel();
 #endif

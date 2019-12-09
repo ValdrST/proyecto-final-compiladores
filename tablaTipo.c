@@ -270,18 +270,14 @@ char* getNombre(typetab *tt, int id){
 }
 // Imprime la tabla de tipos
 void printTablaTipos(typetab *tt){
-    type *t_next;
-    if(tt != NULL){
-        if(tt->root != NULL){
-            do{
-                printf("id: %d nombre: %s numero elementos: %d tamaño: %d tipo base: %d\n",tt->root->id,getNombre(tt,tt->root->id),getNumElem(tt,tt->root->id),getTam(tt,tt->root->id),getTipoBase(tt,tt->root->id)->t.type);
-                printTablaSimbolos(getTipoBase(tt,tt->root->id)->t.estructura);
-                t_next = tt->root->next;
-            }while(t_next!=NULL);
-        }else
-            printf("No hay tipos en la tabla\n");
-    }else{
-        printf("No hay tabla de tipos\n");
+    type* tipo_actual = tt->root;
+    tipoBase* tb;
+
+    printf("###TABLA DE TIPOS###\n");
+    printf("ID\tNOMBRE\tNUM_ELEM TAM TIPO_BASE\n");
+    while(tipo_actual!=NULL){
+        int id = tipo_actual->id;
+        printf("%d\t%s\t%d\t%d\t%d\n",id,getNombre(tt,id),getNumElem(tt,id),getTam(tt,id),getTipoBase(tt,id)->t.type);
+        tipo_actual = tipo_actual->next;
     }
-    
 }

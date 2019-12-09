@@ -14,5 +14,6 @@ void insertarSymTab(symstack *pts, symtab *sym_tab);
 symtab* getCimaSym(symstack *pts);
 symtab* getFondoSym(symstack *pts);
 symtab* sacarSymTab(symstack *pts);
+void printPilaSym(symstack *pts);
 #define PILATABLASIMBOL_H_INCLUDED
 #endif

@@ -1,8 +1,17 @@
 
 func ent suma(ent x  ent y) 
 inicio
+   ent[10] t
     ent z
+    leer z
     z := x + y
-    devolver z
+    escribir z
+    devolver x + y
 fin
 
+func ent main (sin)
+inicio 
+    ent q
+    q := 1
+    devolver q
+fin

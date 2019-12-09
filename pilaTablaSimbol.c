@@ -31,26 +31,36 @@ void borrarSymStack(symstack *pts){
 
 symtab* getCimaSym(symstack *pts){
     symtab *aux = pts->root;
-    return aux;
+    symtab *aux_ant;
+    while(aux != NULL){
+        aux_ant = aux;
+        aux = aux->next;
+    }
+        return aux_ant;
 }
 
 symtab* getFondoSym(symstack *pts){
-    symtab *aux = pts->root;
+    return pts->root;
+    /*symtab *aux = pts->root;
     symtab *aux_next = pts->root->next;
     while(aux_next != NULL){
         aux = aux_next;
         aux_next = aux->next;
     }
-        return aux;
+        return aux;*/
 }
 
 void insertarSymTab(symstack *pts, symtab *sym_tab){
     if(pts){    //Si existe la pila
         if (pts->root == NULL){     //La pila esta vacia
             pts->root = sym_tab;
-        }else{                      //La pila no esta vacia
-            symtab *aux = getCimaSym(pts);
-            aux->next = sym_tab;
+        }else{    
+        symtab *aux = pts->root;
+            while(aux != NULL){
+                aux = aux->next;
+            }
+            aux = sym_tab;
+            aux->next = NULL;
         }
         pts->num++;
     }else{
@@ -72,5 +82,14 @@ symtab* sacarSymTab(symstack *pts){
         }
     }else{
         printf("La pila de tabla de simbolos no existe");
+    }
+}
+
+void printPilaSym(symstack *pts){
+    symtab *current;
+    current = pts->root;
+    while(current != NULL){
+        printTablaSimbolos(current);
+        current = current->next;
     }
 }

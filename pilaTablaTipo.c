@@ -31,17 +31,23 @@ void borrarTypeStack(typestack *ptt){
 
 typetab* getCimaType(typestack *ptt){
     typetab *aux = ptt->root;
-    return aux;
+    typetab *aux_ant;
+    while(aux != NULL){
+        aux_ant = aux;
+        aux = aux->next;
+    }
+    return aux_ant;
 }
 
 typetab* getFondoType(typestack *ptt){
+    return ptt->root;/*
     typetab *aux = ptt->root;
     typetab *aux_next = ptt->root->next;
     while(aux_next != NULL){
         aux = aux_next;
         aux_next = aux->next;
     }
-        return aux;
+        return aux;*/
 }
 
 void insertarTypeTab(typestack *ptt, typetab *type_tab){
@@ -49,8 +55,12 @@ void insertarTypeTab(typestack *ptt, typetab *type_tab){
         if (ptt->root == NULL){     //La pila esta vacia
             ptt->root = type_tab;
         }else{                      //La pila no esta vacia
-            typetab *aux = getCimaType(ptt);
-            aux->next = type_tab;
+            typetab *aux = ptt->root;
+            while(aux != NULL){
+                aux = aux->next;
+            }
+            aux = type_tab;
+            aux->next = NULL;
         }
         ptt->num++;
     }else{
@@ -72,5 +82,14 @@ typetab* sacarTypeTab(typestack *ptt){
         }
     }else{
         printf("La pila de tabla de simbolos no existe");
+    }
+}
+
+void printPilaType(typestack *ptt){
+    typetab *current;
+    current = ptt->root;
+    while(current != NULL){
+        printTablaTipos(current);
+        current = current->next;
     }
 }

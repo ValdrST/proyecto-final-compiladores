@@ -295,12 +295,16 @@ void printTablaSimbolos(symtab *st){
         }else{
             strcpy(tipoVar_v,getTipoVar(st, simbolo_actual->id));
         }
-        printf("%d %s %d %d %s %d %d %d ",simbolos,simbolo_actual->id,getTipo(st, simbolo_actual->id),getDir(st, simbolo_actual->id),tipoVar_v);
+        printf("%d %s %d %d %s ",simbolos,simbolo_actual->id,getTipo(st, simbolo_actual->id),getDir(st, simbolo_actual->id),tipoVar_v);
         lista = getListParam(st, simbolo_actual->id);
-        param_actual = lista->root;
-        while(param_actual != NULL){
+        if(lista){
+            param_actual = lista->root;
+            while(param_actual != NULL){
             printf("%d, ",param_actual->tipo);
             param_actual = param_actual->next;
+            }
+        }else{
+                printf("-");
             }
         printf("\n");
         simbolo_actual = simbolo_actual->next;
