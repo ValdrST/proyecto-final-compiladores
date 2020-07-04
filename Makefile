@@ -21,3 +21,5 @@ clean:
 	rm -f *.tab.c
 	rm -f *.o
 	rm -f encabezado.txt
+	rm -f out.s
+	rm -f ascii.s
